@@ -1,5 +1,7 @@
 # Ibra X
 
+🇮🇩 Bahasa Indonesia · [🇬🇧 English](README.en.md)
+
 > Agen otonom untuk WhatsApp — membaca, mengingat, memahami, dan bertindak atas lalu lintas WhatsApp Anda. Open source, instalasi termudah, dukungan bawaan untuk banyak penyedia LLM, dengan Skills API & SDK.
 
 `ibra-x` adalah platform agen WhatsApp yang dapat di-host sendiri (self-hosted). Ia menautkan satu atau beberapa nomor WhatsApp lewat [Baileys](https://github.com/WhiskeySockets/Baileys), lalu menjalankan loop agen yang otonom: mengamati chat, mengingat konteks, memanggil *skill* (tool), dan membalas dengan kebijakan izin yang ketat.
@@ -181,6 +183,7 @@ ibrax memory verify                 # jumlah + sidik jari (deteksi perubahan)
 
 - 🌐 **Situs dokumentasi**: https://ibradecode.github.io/ibra-x/
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — arsitektur, keputusan desain, dan alur.
+- [`docs/API.md`](docs/API.md) — referensi API SDK (skill, tool, hook, job).
 - [`docs/SKILLS.md`](docs/SKILLS.md) — cara menulis skill dan memakai server MCP.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — alur kontribusi dan strategi branch.
 

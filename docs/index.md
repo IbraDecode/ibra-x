@@ -20,6 +20,7 @@ npx ibra-x start    # jalankan agen + dashboard (http://127.0.0.1:8787)
 ## Dokumentasi
 
 - [Arsitektur](ARCHITECTURE) — prinsip, multi-nomor berperan, loop agen, memori, policy, keandalan.
+- [Referensi API SDK](API) — skill, tool, hook, job, dan antarmuka runtime.
 - [Menulis Skill](SKILLS) — Skills API, job periodik, server MCP.
 - [Contributing](https://github.com/IbraDecode/ibra-x/blob/main/CONTRIBUTING.md) — alur & strategi branch.
 - [Changelog](https://github.com/IbraDecode/ibra-x/blob/main/CHANGELOG.md)

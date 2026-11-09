@@ -4,6 +4,13 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.17.0] — 2026-11-09
+
+### Ditambahkan
+- **README Inggris** (`README.en.md`) dengan tautan dua bahasa.
+- **Referensi API SDK** (`docs/API.md`): `defineSkill`/`defineTool`, `ToolContext`, `RuntimeApi`,
+  hook `onInbound`, job periodik, dan tabel tipe. Ditautkan dari README dan situs dokumentasi.
+
 ## [0.16.0] — 2026-11-09
 
 ### Ditambahkan
