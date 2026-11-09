@@ -1,4 +1,4 @@
-import { FINISH_TOOL_NAME, defineSkill, defineTool } from "@ibrax/sdk"
+import { FINISH_TOOL_NAME, defineSkill, defineTool, type ApprovalInfo } from "@ibrax/sdk"
 
 /**
  * Tool `finish` dipakai agen untuk mengakhiri giliran secara eksplisit sambil
@@ -122,6 +122,60 @@ export const coreMemorySkill = defineSkill({
       async execute(input, ctx) {
         await ctx.runtime.memory.forget(input.id)
         return { ok: true as const }
+      },
+    }),
+  ],
+})
+
+/** Skill bawaan: alur persetujuan untuk aksi berdampak (tugas terparkir). */
+export const approvalsSkill = defineSkill({
+  id: "approvals",
+  name: "Persetujuan",
+  description: "Menampilkan, menyetujui, atau menolak aksi yang menunggu persetujuan manusia.",
+  systemPrompt:
+    "Bila sebuah aksi ditolak karena butuh persetujuan, aksi itu di-park. Gunakan `list_approvals` untuk " +
+    "melihatnya, lalu `approve_action`/`reject_action` dengan id-nya. Hanya lakukan bila pemilik memintanya.",
+  tools: [
+    defineTool<{ accountId?: string }, { approvals: ApprovalInfo[] }>({
+      name: "list_approvals",
+      description: "Tampilkan daftar aksi yang menunggu persetujuan.",
+      parameters: {
+        type: "object",
+        properties: { accountId: { type: "string", description: "Filter akun (opsional)." } },
+      },
+      risk: "low",
+      async execute(input, ctx) {
+        const api = ctx.runtime.approvals
+        return { approvals: api ? api.list({ accountId: input.accountId }) : [] }
+      },
+    }),
+    defineTool<{ id: string }, { ok: boolean; text?: string }>({
+      name: "approve_action",
+      description: "Setujui dan lanjutkan aksi terparkir berdasarkan id.",
+      parameters: {
+        type: "object",
+        properties: { id: { type: "string", description: "id aksi terparkir." } },
+        required: ["id"],
+      },
+      risk: "medium",
+      async execute(input, ctx) {
+        if (!ctx.runtime.approvals) throw new Error("Alur persetujuan tidak tersedia pada runtime ini.")
+        const res = await ctx.runtime.approvals.approve(input.id)
+        return { ok: res.ok, text: res.text }
+      },
+    }),
+    defineTool<{ id: string }, { ok: boolean }>({
+      name: "reject_action",
+      description: "Tolak aksi terparkir berdasarkan id.",
+      parameters: {
+        type: "object",
+        properties: { id: { type: "string", description: "id aksi terparkir." } },
+        required: ["id"],
+      },
+      risk: "low",
+      async execute(input, ctx) {
+        if (!ctx.runtime.approvals) throw new Error("Alur persetujuan tidak tersedia pada runtime ini.")
+        return ctx.runtime.approvals.reject(input.id)
       },
     }),
   ],

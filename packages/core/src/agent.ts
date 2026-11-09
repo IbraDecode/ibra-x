@@ -24,6 +24,8 @@ export type ToolContextFactory = (info: {
     senderId?: string
     skillId: string
     signal?: AbortSignal
+    /** Bila true, permintaan persetujuan otomatis disetujui (mis. saat melanjutkan tugas terparkir). */
+    autoApprove?: boolean
   }) => ToolContext
 
 export interface AgentDeps {
@@ -48,6 +50,8 @@ export interface AgentRunInput {
   sessionId: string
   /** Model khusus; default dari config. */
   model?: string
+  /** Bila true, aksi `ask` dijalankan tanpa persetujuan (mis. setelah disetujui manusia). */
+  autoApprove?: boolean
 }
 
 export interface AgentRunResult {
@@ -56,6 +60,8 @@ export interface AgentRunResult {
   usage: Usage
   reason: "completed" | "finish" | "max-steps" | "approval-required" | "error"
   toolCalls: Array<{ name: string; ok: boolean }>
+  /** Nama tool yang menunggu persetujuan (bila reason = approval-required). */
+  pendingTool?: string
 }
 
 /**
@@ -88,6 +94,7 @@ export class Agent {
     const schemas = this.toolSchemas()
     const usage: Usage = {}
     const executed: Array<{ name: string; ok: boolean }> = []
+    const autoApprove = input.autoApprove ?? this.deps.autoApprove
     let lastText = ""
 
     for (let step = 1; step <= config.maxSteps; step++) {
@@ -148,10 +155,10 @@ export class Agent {
           continue
         }
 
-        if (decision.effect === "ask" && !this.deps.autoApprove) {
+        if (decision.effect === "ask" && !autoApprove) {
           const text = `Aksi \`${call.name}\` memerlukan persetujuan (${decision.reason}). Menunggu konfirmasi.`
           bus.emit("agent.finished", { sessionId: input.sessionId, reason: "approval-required", text, usage })
-          return { text, steps: step, usage, reason: "approval-required", toolCalls: executed }
+          return { text, steps: step, usage, reason: "approval-required", toolCalls: executed, pendingTool: call.name }
         }
 
         const ctx = this.deps.makeToolContext({
@@ -160,6 +167,7 @@ export class Agent {
           chatId: input.chatId,
           senderId: input.senderId,
           skillId: found.skill.id,
+          autoApprove,
         })
 
         const t0 = Date.now()

@@ -4,6 +4,20 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.25.0] — 2026-11-09
+
+### Ditambahkan
+- **Alur persetujuan (parked task → resume)**: aksi yang butuh izin kini benar-benar
+  di-park (`RuntimeApi.approvals`), owner diberi tahu, dan dapat **disetujui untuk
+  dilanjutkan** (agen dijalankan ulang dengan izin) atau ditolak. Tersedia lewat skill
+  bawaan **`approvals`** (`list_approvals`, `approve_action`, `reject_action`).
+- `AgentRunInput.autoApprove` + `ToolContext.requestApproval` kini menghormati izin
+  saat tugas terparkir dilanjutkan.
+
+### Diperbaiki
+- `requestApproval` tidak lagi selalu menolak — saat melanjutkan tugas yang disetujui,
+  permintaan persetujuan otomatis disetujui (izinkan tool berjalan).
+
 ## [0.24.0] — 2026-11-09
 
 ### Ditambahkan

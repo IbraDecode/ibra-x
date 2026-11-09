@@ -139,7 +139,7 @@ Mengadopsi pelajaran dari protokol WhatsApp (lihat riset internal):
   dan mendekripsi suara polling.
 - **Serialisasi kirim.** Semua `sendMessage` per socket diserialisasi dalam satu antrean (kirim paralel dapat menyebabkan salah-antar). Ada timeout per panggilan.
 - **Tangga pemulihan.** `retry` (backoff + jitter) → `rebuild` (buang state lokal, muat ringkasan kanonik) → `escalate` (park + tanya manusia).
-- **Tugas terparkir.** Tugas yang butuh izin/manusia di-park (`INPUT_REQUIRED`) dan dilanjutkan otomatis saat izin diberikan.
+- **Tugas terparkir.** Tugas yang butuh izin/manusia di-park (`INPUT_REQUIRED`) dan dilanjutkan otomatis saat izin diberikan lewat `RuntimeApi.approvals` (skill `approvals`).
 - **Kebijakan reconnect.** Memetakan `DisconnectReason` → terminal (logged out) vs pulih (jaringan/restart), dengan backoff.
 
 ---

@@ -1,5 +1,6 @@
 import { strict as assert } from "node:assert"
 import { test } from "node:test"
+import { defineTool } from "@ibrax/sdk"
 import type { CompleteRequest, CompletionResult, Logger, Provider, Skill, StreamChunk } from "@ibrax/sdk"
 import { ConfigSchema } from "./config.ts"
 import { Store } from "./db.ts"
@@ -400,5 +401,55 @@ test("outbox durable: pengiriman gagal disimpan lalu dicoba ulang", async () => 
   assert.equal(sent, 1)
   assert.equal(store.listOutbox("pending").length, 0)
   assert.equal(store.listOutbox("sent").length, 1)
+  store.close()
+})
+
+test("alur persetujuan: aksi terparkir dilanjutkan setelah disetujui", async () => {
+  const provider = new ScriptedProvider([
+    { message: { role: "assistant", content: null, toolCalls: [{ id: "1", name: "act", arguments: {} }] }, usage: {} },
+    { message: { role: "assistant", content: null, toolCalls: [{ id: "2", name: "act", arguments: {} }] }, usage: {} },
+    { message: { role: "assistant", content: "selesai" }, usage: {} },
+  ])
+  const transport = new FakeTransport()
+  const store = new Store(":memory:")
+  const config = ConfigSchema.parse({ autonomy: "suggest", ownerNumbers: ["62811"] })
+  const registry = new SkillRegistry()
+  let executed = 0
+  registry.register({
+    id: "test",
+    name: "Test",
+    tools: [
+      defineTool({
+        name: "act",
+        description: "Aksi berdampak.",
+        parameters: { type: "object", properties: {} },
+        risk: "medium",
+        async execute() {
+          executed++
+          return { ok: true }
+        },
+      }),
+    ],
+  })
+  const runtime = new Runtime({ config, store, bus: new EventBus(), logger: noopLogger, provider, registry, transport })
+
+  await runtime.handleInbound({
+    id: "m1",
+    accountId: "a1",
+    chatId: "c1",
+    chatKind: "dm",
+    senderId: "62811@s.whatsapp.net",
+    fromMe: false,
+    timestamp: Date.now(),
+    text: "lakukan aksi",
+  })
+  assert.equal(executed, 0, "tool belum dieksekusi (menunggu persetujuan)")
+  const pending = runtime.approvals!.list()
+  assert.equal(pending.length, 1)
+
+  const res = await runtime.approvals!.approve(pending[0]!.id)
+  assert.equal(res.ok, true)
+  assert.equal(executed, 1, "tool dieksekusi setelah disetujui")
+  assert.equal(runtime.approvals!.list().length, 0, "daftar terparkir kosong setelah disetujui")
   store.close()
 })

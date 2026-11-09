@@ -5,6 +5,7 @@ import {
   Scheduler,
   Store,
   WebhookDispatcher,
+  approvalsSkill,
   coreMemorySkill,
   createImageDescriber,
   createLogger,
@@ -82,7 +83,7 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
     dirs: resolveSkillDirs(config.skills.dirs, import.meta.url),
     packages: config.skills.packages,
     disabled: config.skills.disabled,
-    builtins: [coreMemorySkill, whatsappSkill, subagentSkill],
+    builtins: [coreMemorySkill, whatsappSkill, subagentSkill, approvalsSkill],
     store: rootSkillStore,
     logger: logger.child({ comp: "skills" }),
   })

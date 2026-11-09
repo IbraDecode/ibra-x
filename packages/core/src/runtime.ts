@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto"
 import { mkdir, writeFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import type {
+  ApprovalApi,
+  ApprovalInfo,
   HandoffApi,
   InboundMessage,
   Logger,
@@ -172,6 +174,54 @@ export class Runtime implements RuntimeApi {
         const value = (entry.value ?? {}) as { reason?: string; at?: number }
         return { chatId: entry.key.slice(prefix.length), reason: value.reason, at: value.at ?? 0 }
       })
+    },
+  }
+
+  /** Alur persetujuan: tugas yang butuh izin di-park dan dilanjutkan saat disetujui. */
+  readonly approvals: ApprovalApi = {
+    list: (opts) =>
+      this.store
+        .kvList("approval:")
+        .map((entry) => entry.value as ApprovalInfo)
+        .filter((v): v is ApprovalInfo => Boolean(v) && (!opts?.accountId || v.accountId === opts.accountId)),
+    approve: async (id) => {
+      const info = this.store.kvGet<ApprovalInfo>(`approval:${id}`)
+      if (!info) return { ok: false }
+      this.store.kvDelete(`approval:${id}`)
+      this.store.audit({ actor: info.accountId, action: "approval.approve", detail: { id, tool: info.tool } })
+      // Lanjutkan: jalankan ulang agen dengan izin (konteks dibangun dari riwayat chat).
+      const result = await this.agent.run({
+        accountId: info.accountId,
+        chatId: info.chatId,
+        chatKind: info.chatKind as "dm" | "group",
+        role: info.role,
+        senderId: info.senderId,
+        sessionId: info.sessionId,
+        autoApprove: true,
+      })
+      const account = this.accountConfig(info.accountId)
+      await this.deliverText(
+        {
+          id: `approval:${id}`,
+          accountId: info.accountId,
+          chatId: info.chatId,
+          chatKind: info.chatKind as "dm" | "group",
+          senderId: info.senderId,
+          fromMe: false,
+          timestamp: Date.now(),
+        },
+        account,
+        result.text,
+        "approval",
+      )
+      return { ok: true, text: result.text, reason: result.reason }
+    },
+    reject: async (id) => {
+      const info = this.store.kvGet<ApprovalInfo>(`approval:${id}`)
+      if (!info) return { ok: false }
+      this.store.kvDelete(`approval:${id}`)
+      this.store.audit({ actor: info.accountId, action: "approval.reject", detail: { id, tool: info.tool } })
+      return { ok: true }
     },
   }
 
@@ -431,6 +481,7 @@ export class Runtime implements RuntimeApi {
     senderId?: string
     skillId: string
     signal?: AbortSignal
+    autoApprove?: boolean
   }): ToolContext {
     return {
       logger: this.logger.child({ skill: info.skillId, session: info.sessionId }),
@@ -441,8 +492,13 @@ export class Runtime implements RuntimeApi {
       chatId: info.chatId,
       senderId: info.senderId,
       signal: info.signal,
-      // MVP: permintaan persetujuan menjadi tugas terparkir (tidak memblokir).
+      // Persetujuan otomatis saat melanjutkan tugas terparkir; jika tidak,
+      // permintaan menjadi "tidak disetujui" sehingga tool dapat memarkir aksi.
       requestApproval: async (reason: string) => {
+        if (info.autoApprove) {
+          this.store.audit({ actor: info.accountId, action: "approval.auto", detail: { reason, tool: info.skillId } })
+          return { approved: true }
+        }
         this.store.audit({ actor: info.accountId, action: "approval.request", detail: { reason, tool: info.skillId } })
         return { approved: false }
       },
@@ -662,8 +718,42 @@ export class Runtime implements RuntimeApi {
 
     await this.deliverReply(msg, account, result)
 
+    // Parkir aksi yang butuh persetujuan manusia + beri tahu owner.
+    if (result.reason === "approval-required") {
+      const id = randomUUID()
+      const info: ApprovalInfo = {
+        id,
+        accountId: msg.accountId,
+        chatId: msg.chatId,
+        chatKind: msg.chatKind,
+        role: account.role,
+        senderId: msg.senderId,
+        sessionId,
+        tool: result.pendingTool,
+        reason: "butuh persetujuan",
+        at: Date.now(),
+      }
+      this.store.kvSet(`approval:${id}`, info)
+      this.store.audit({ actor: msg.accountId, action: "approval.park", detail: { id, tool: result.pendingTool } })
+      await this.notifyOwner(
+        `⏸️ Menunggu persetujuan (tool: ${result.pendingTool ?? "?"}) untuk chat ${msg.chatId}.\nId: ${id}\nSetujui dengan meminta agen memanggil \`approve_action\`, atau tolak dengan \`reject_action\`.`,
+        msg.accountId,
+      )
+    }
+
     // Kompaksi ringan di latar belakang (best-effort, tidak memblokir balasan).
     void this.session.maybeCompact(msg.accountId, msg.chatId).catch(() => {})
+  }
+
+  /** Mengirim notifikasi ke owner (best-effort). */
+  private async notifyOwner(text: string, accountId: string): Promise<void> {
+    const owner = this.config.ownerNumbers[0]
+    if (!owner) return
+    try {
+      await this.sendMessage(`${owner.replace(/[^0-9]/g, "")}@s.whatsapp.net`, { text }, { accountId })
+    } catch {
+      // Diamkan kegagalan notifikasi owner.
+    }
   }
 
   private async deliverReply(msg: InboundMessage, account: AccountConfig, result: AgentRunResult): Promise<void> {

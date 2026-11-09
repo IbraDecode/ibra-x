@@ -229,6 +229,28 @@ export interface HandoffApi {
   list(opts?: { accountId?: string }): Array<{ chatId: string; reason?: string; at: number }>
 }
 
+/** Tugas terparkir yang menunggu persetujuan manusia. */
+export interface ApprovalInfo {
+  id: string
+  accountId: string
+  chatId: string
+  chatKind: string
+  role: string
+  senderId: string
+  sessionId: string
+  tool?: string
+  reason: string
+  at: number
+}
+
+/** Alur persetujuan: menyetujui tugas terparkir melanjutkan agen dengan izin. */
+export interface ApprovalApi {
+  list(opts?: { accountId?: string }): ApprovalInfo[]
+  /** Setujui & lanjutkan tugas terparkir (menjalankan ulang agen dengan izin). */
+  approve(id: string): Promise<{ ok: boolean; text?: string; reason?: string }>
+  reject(id: string): Promise<{ ok: boolean }>
+}
+
 /** Kapabilitas runtime yang dapat dipanggil tool. */
 export interface RuntimeApi {
   /** ID akun WhatsApp yang sedang aktif. */
@@ -255,6 +277,8 @@ export interface RuntimeApi {
   readonly speech?: SpeechApi
   /** Handoff ke manusia (menahan balasan otomatis per chat). */
   readonly handoff?: HandoffApi
+  /** Alur persetujuan untuk tugas terparkir. */
+  readonly approvals?: ApprovalApi
 }
 
 /** Penyimpanan kunci-nilai ber-namespace untuk sebuah skill. */

@@ -81,6 +81,21 @@ interface RuntimeApi {
   readonly whatsapp?: WhatsAppOps     // operasi WhatsApp lanjutan (lihat bawah)
   readonly subagent?: SubagentApi     // subagent.run(task, opts)
   readonly speech?: SpeechApi         // speech.synthesize(text) → path audio
+  readonly handoff?: HandoffApi       // enable / disable / isActive / list
+  readonly approvals?: ApprovalApi    // list / approve / reject (tugas terparkir)
+}
+```
+
+### `ApprovalApi`
+
+```ts
+interface ApprovalApi {
+  // Daftar aksi yang menunggu persetujuan (opsional filter akun).
+  list(opts?: { accountId?: string }): ApprovalInfo[]
+  // Setujui & lanjutkan (menjalankan ulang agen dengan izin).
+  approve(id: string): Promise<{ ok: boolean; text?: string; reason?: string }>
+  // Tolak aksi terparkir.
+  reject(id: string): Promise<{ ok: boolean }>
 }
 ```
 
