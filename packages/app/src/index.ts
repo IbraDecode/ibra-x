@@ -5,6 +5,7 @@ import {
   Scheduler,
   Store,
   coreMemorySkill,
+  createImageDescriber,
   createLogger,
   createTranscriber,
   ensureDataDir,
@@ -104,6 +105,22 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
     }
   }
 
+  // Deskripsi gambar (opsional) memakai model multimodal.
+  let imageDescriber
+  if (config.media.describeImages) {
+    const preset = findPreset(config.provider)
+    const apiKey = preset?.apiKeyEnv ? process.env[preset.apiKeyEnv] : undefined
+    if (preset) {
+      imageDescriber = createImageDescriber({
+        baseUrl: preset.baseUrl,
+        apiKey,
+        model: config.media.visionModel ?? config.model,
+        maxBytes: config.media.maxImageBytes,
+      })
+      logger.info({ model: config.media.visionModel ?? config.model }, "deskripsi gambar aktif")
+    }
+  }
+
   const runtime = new Runtime({
     config,
     store,
@@ -114,6 +131,7 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
     transport: manager,
     autoApprove: opts.autoApprove,
     transcriber,
+    imageDescriber,
   })
 
   manager.setInboundHandler((msg) => runtime.handleInbound(msg))

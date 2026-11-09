@@ -54,9 +54,20 @@ export const ConfigSchema = z.object({
       /** Transkripsikan pesan suara otomatis (butuh provider yang mendukung audio). */
       transcribe: z.boolean().default(false),
       transcribeModel: z.string().default("whisper-1"),
+      /** Deskripsikan gambar masuk otomatis (butuh model multimodal). */
+      describeImages: z.boolean().default(false),
+      /** Model vision; default memakai config.model aktif. */
+      visionModel: z.string().optional(),
       maxAudioBytes: z.number().int().positive().default(25 * 1024 * 1024),
+      maxImageBytes: z.number().int().positive().default(10 * 1024 * 1024),
     })
-    .default({ transcribe: false, transcribeModel: "whisper-1", maxAudioBytes: 25 * 1024 * 1024 }),
+    .default({
+      transcribe: false,
+      transcribeModel: "whisper-1",
+      describeImages: false,
+      maxAudioBytes: 25 * 1024 * 1024,
+      maxImageBytes: 10 * 1024 * 1024,
+    }),
   /** Persona/system prompt dasar agen. */
   persona: z
     .string()
@@ -101,6 +112,9 @@ export function applyEnv(raw: Record<string, unknown>, env: NodeJS.ProcessEnv = 
   }
   if (env.IBRA_TRANSCRIBE !== undefined) {
     ;(out as any).media = { ...((out as any).media ?? {}), transcribe: env.IBRA_TRANSCRIBE === "true" }
+  }
+  if (env.IBRA_DESCRIBE_IMAGES !== undefined) {
+    ;(out as any).media = { ...((out as any).media ?? {}), describeImages: env.IBRA_DESCRIBE_IMAGES === "true" }
   }
   return out
 }

@@ -4,7 +4,7 @@ import { Agent, type AgentRunResult } from "./agent.ts"
 import type { AccountConfig, IbraConfig } from "./config.ts"
 import type { Store } from "./db.ts"
 import type { EventBus } from "./events.ts"
-import type { Transcriber } from "./media.ts"
+import type { ImageDescriber, Transcriber } from "./media.ts"
 import { MemoryService } from "./memory.ts"
 import { Policy } from "./policy.ts"
 import { SessionManager } from "./session.ts"
@@ -42,6 +42,8 @@ export interface RuntimeOptions {
   autoApprove?: boolean
   /** Transkripsi audio otomatis untuk pesan suara masuk. */
   transcriber?: Transcriber
+  /** Deskripsi gambar otomatis untuk pesan gambar masuk. */
+  imageDescriber?: ImageDescriber
 }
 
 /**
@@ -119,6 +121,7 @@ export class Runtime implements RuntimeApi {
   private readonly config: IbraConfig
   private readonly transport?: Transport
   private readonly transcriber?: Transcriber
+  private readonly imageDescriber?: ImageDescriber
   private currentAccountId: string
   private processing = false
 
@@ -133,6 +136,7 @@ export class Runtime implements RuntimeApi {
     this.registry = opts.registry
     this.transport = opts.transport
     this.transcriber = opts.transcriber
+    this.imageDescriber = opts.imageDescriber
     this.currentAccountId = opts.config.accounts[0]?.id ?? "default"
 
     this.agent = new Agent({
@@ -310,6 +314,23 @@ export class Runtime implements RuntimeApi {
         }
       } catch (error) {
         this.logger.warn({ error, id: msg.id }, "transkripsi gagal")
+      }
+    }
+
+    // Deskripsi gambar otomatis agar agen "melihat" gambar.
+    if (
+      this.imageDescriber &&
+      msg.media?.localPath &&
+      (msg.media.kind === "image" || msg.media.kind === "sticker")
+    ) {
+      try {
+        const description = await this.imageDescriber.describe(msg.media.localPath, msg.media.mime)
+        if (description) {
+          msg.text = `${msg.text ? msg.text + "\n" : ""}[gambar] ${description}`
+          this.store.audit({ actor: msg.accountId, action: "media.describe", detail: { id: msg.id } })
+        }
+      } catch (error) {
+        this.logger.warn({ error, id: msg.id }, "deskripsi gambar gagal")
       }
     }
 
