@@ -71,6 +71,7 @@ export interface Transport {
     accountId: string,
     chatId: string,
     action: "archive" | "unarchive" | "pin" | "unpin" | "mute" | "unmute" | "markUnread",
+    lastMessage?: { id: string; fromMe: boolean; timestamp: number },
   ): Promise<void>
   sendContact(accountId: string, chatId: string, contact: { displayName: string; vcard: string }): Promise<void>
 }
@@ -260,7 +261,15 @@ export class Runtime implements RuntimeApi {
     },
     chatModify: async (chatId, action, opts) => {
       const accountId = opts?.accountId ?? this.currentAccountId
-      await this.transport?.chatModify(accountId, chatId, action)
+      // Kirim pesan terakhir yang valid agar patch app-state konsisten
+      // (menghindari `lastMessages: []` yang berisiko memicu logout).
+      const last = this.store.getLastMessage(chatId)
+      await this.transport?.chatModify(
+        accountId,
+        chatId,
+        action,
+        last ? { id: last.id, fromMe: last.fromMe, timestamp: last.timestamp } : undefined,
+      )
       this.store.audit({ actor: accountId, action: `wa.chat.${action}`, detail: { chatId } })
     },
     sendContact: async (chatId, contact, opts) => {

@@ -227,6 +227,18 @@ export class Store {
     return (this.db.prepare("SELECT COUNT(*) as n FROM messages").get() as any).n
   }
 
+  /** Pesan terakhir pada sebuah chat (untuk app-state mutation seperti arsip/markRead). */
+  getLastMessage(chatId: string): StoredMessage | undefined {
+    const r = this.db
+      .prepare(
+        `SELECT id, account_id as accountId, chat_id as chatId, sender_id as senderId, from_me as fromMe,
+                text, timestamp, media_json as mediaJson
+         FROM messages WHERE chat_id=? ORDER BY timestamp DESC LIMIT 1`,
+      )
+      .get(chatId) as any
+    return r ? { ...r, fromMe: !!r.fromMe } : undefined
+  }
+
   // --- Sesi ----------------------------------------------------------------
   getSessionSummary(sessionId: string): string | undefined {
     const row = this.db.prepare("SELECT summary FROM sessions WHERE id=?").get(sessionId) as any

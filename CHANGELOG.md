@@ -25,6 +25,9 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
   dan tidak memicu agen (sebelumnya berpotensi memicu balasan kosong).
 - **Race antrean masuk**: kunci dilepas sebelum pengecekan akhir, sehingga pesan yang
   tiba tepat saat drain tidak lagi "nyangkut" — ditutup dengan loop verifikasi (`hasPendingInbox`).
+- **Keamanan `chatModify`**: arsip/markRead kini mengirim pesan terakhir yang valid
+  (`Store.getLastMessage`). Aksi ini **ditolak** bila pesan terakhir belum diketahui,
+  menghindari `lastMessages: []` yang berisiko mencabut sesi (logout) menurut dokumen Baileys.
 
 ### Catatan
 - Riset protokol: `syncFullHistory`/`getMessage` penuh (untuk retry dekripsi & dekripsi poll)

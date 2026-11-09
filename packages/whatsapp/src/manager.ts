@@ -171,8 +171,9 @@ export class WhatsAppManager implements Transport {
     accountId: string,
     chatId: string,
     action: "archive" | "unarchive" | "pin" | "unpin" | "mute" | "unmute" | "markUnread",
+    lastMessage?: { id: string; fromMe: boolean; timestamp: number },
   ): Promise<void> {
-    await this.require(accountId).chatModify(chatId, action)
+    await this.require(accountId).chatModify(chatId, action, lastMessage)
   }
 
   async sendContact(accountId: string, chatId: string, contact: { displayName: string; vcard: string }): Promise<void> {

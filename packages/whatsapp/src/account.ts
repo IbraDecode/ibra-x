@@ -469,9 +469,23 @@ export class AccountRuntime {
   async chatModify(
     chatId: string,
     action: "archive" | "unarchive" | "pin" | "unpin" | "mute" | "unmute" | "markUnread",
+    lastMessage?: { id: string; fromMe: boolean; timestamp: number },
   ): Promise<void> {
     if (!this.sock) return
-    const lastMessages: never[] = []
+    // Pesan terakhir memberi patch app-state yang konsisten. Tanpa itu, aksi
+    // arsip/markRead berisiko membuat WhatsApp mencabut sesi (logout) — jadi ditolak.
+    const needsLast = action === "archive" || action === "unarchive" || action === "markUnread"
+    if (needsLast && !lastMessage) {
+      throw new Error(`Tidak dapat ${action}: pesan terakhir untuk chat ini belum diketahui.`)
+    }
+    const lastMessages = lastMessage
+      ? [
+          {
+            key: { remoteJid: chatId, id: lastMessage.id, fromMe: lastMessage.fromMe },
+            messageTimestamp: Math.floor(lastMessage.timestamp / 1000),
+          },
+        ]
+      : undefined
     let modification: any
     if (action === "archive") modification = { archive: true, lastMessages }
     else if (action === "unarchive") modification = { archive: false, lastMessages }

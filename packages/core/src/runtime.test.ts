@@ -314,3 +314,23 @@ test("pesan sistem (protocolMessage) tidak memicu agen", async () => {
   assert.equal(provider.calls, 0)
   store.close()
 })
+
+test("store.getLastMessage mengembalikan pesan terbaru sebuah chat", () => {
+  const store = new Store(":memory:")
+  store.insertMessage({ id: "a", accountId: "a1", chatId: "c1", senderId: "s", fromMe: false, text: "lama", timestamp: 1000 })
+  store.insertMessage({
+    id: "b",
+    accountId: "a1",
+    chatId: "c1",
+    senderId: "s",
+    fromMe: true,
+    text: "baru",
+    timestamp: 2000,
+  })
+  const last = store.getLastMessage("c1")
+  assert.equal(last?.id, "b")
+  assert.equal(last?.fromMe, true)
+  assert.equal(last?.timestamp, 2000)
+  assert.equal(store.getLastMessage("tidak-ada"), undefined)
+  store.close()
+})
