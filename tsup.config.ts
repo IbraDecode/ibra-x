@@ -40,6 +40,8 @@ export default defineConfig([
       "skills/scheduler/index": "skills/scheduler/index.ts",
       "skills/digest/index": "skills/digest/index.ts",
       "skills/autoreply/index": "skills/autoreply/index.ts",
+      "skills/notes/index": "skills/notes/index.ts",
+      "skills/calendar/index": "skills/calendar/index.ts",
       "skills/web-fetch/index": "skills/web-fetch/index.ts",
       "skills/web-search/index": "skills/web-search/index.ts",
     },

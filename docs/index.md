@@ -33,8 +33,7 @@ npx ibra-x start    # jalankan agen + dashboard (http://127.0.0.1:8787)
 - **22 tool WhatsApp** — kirim teks/media, reaksi, sunting/hapus, presence, riwayat, info grup, admin grup, poll, lokasi, cek nomor, blokir.
 - **Otomasi proaktif** — pengingat, pesan terjadwal, ringkasan harian (job periodik milik skill).
 - **Subagen** — delegasi berkonteks terisolasi.
-- **Skills API & SDK** + **MCP** (stdio & Streamable HTTP).
-- **Dashboard web** dan **guardrails** (rate limit, jam tenang, otonomi berjenjang).
+- **Skills API & SDK** + **MCP** (stdio & Streamable HTTP).- **Dashboard web** dan **guardrails** (rate limit, jam tenang, otonomi berjenjang).
 
 ## Lisensi
 

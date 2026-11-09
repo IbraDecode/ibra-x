@@ -4,6 +4,13 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.16.0] — 2026-11-09
+
+### Ditambahkan
+- Skill **`notes`**: catatan teks (tambah/cari/daftar/hapus).
+- Skill **`calendar`**: acara + undangan kalender `.ics` (kirim sebagai dokumen WhatsApp).
+- Fungsi murni `searchNotes`, `toIcsDate`, `buildIcs` (diuji tanpa I/O).
+
 ## [0.15.0] — 2026-11-09
 
 ### Ditambahkan
