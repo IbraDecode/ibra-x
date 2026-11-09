@@ -4,6 +4,13 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.10.0] — 2026-11-09
+
+### Ditambahkan
+- Skill `web-search`: pencarian web via Brave/Tavily/Serper (penyedia dipilih dari API key).
+- Helper murni `resolveSearchProvider`, `describeRequest`, `parseResults` (dapat diuji tanpa jaringan).
+- README: tabel skill bawaan; `.env.example`: kunci pencarian.
+
 ## [0.9.0] — 2026-11-09
 
 ### Ditambahkan
