@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto"
 import { mkdir, writeFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import type {
+  HandoffApi,
   InboundMessage,
   Logger,
   RuntimeApi,
@@ -131,6 +132,41 @@ export class Runtime implements RuntimeApi {
   }
 
   private subagentDepth = 0
+
+  /** Handoff ke manusia: menahan balasan otomatis per chat (persisten via kv). */
+  readonly handoff: HandoffApi = {
+    enable: async (chatId, reason, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      this.store.kvSet(`handoff:${accountId}:${chatId}`, { reason, at: Date.now() })
+      this.store.audit({ actor: accountId, action: "handoff.enable", detail: { chatId, reason } })
+      const owner = this.config.ownerNumbers[0]
+      if (owner) {
+        try {
+          await this.sendMessage(
+            `${owner.replace(/[^0-9]/g, "")}@s.whatsapp.net`,
+            { text: `🙋 Handoff: chat ${chatId} butuh manusia${reason ? ` (${reason})` : ""}.` },
+            { accountId },
+          )
+        } catch {
+          // Diamkan kegagalan notifikasi owner.
+        }
+      }
+    },
+    disable: async (chatId, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      this.store.kvDelete(`handoff:${accountId}:${chatId}`)
+      this.store.audit({ actor: accountId, action: "handoff.disable", detail: { chatId } })
+    },
+    isActive: (chatId) => this.store.kvGet(`handoff:${this.currentAccountId}:${chatId}`) !== undefined,
+    list: (opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      const prefix = `handoff:${accountId}:`
+      return this.store.kvList(prefix).map((entry) => {
+        const value = (entry.value ?? {}) as { reason?: string; at?: number }
+        return { chatId: entry.key.slice(prefix.length), reason: value.reason, at: value.at ?? 0 }
+      })
+    },
+  }
 
   /** Sintesis suara (bila speaker dikonfigurasi). Mengembalikan path berkas audio. */
   get speech(): SpeechApi | undefined {
@@ -487,6 +523,13 @@ export class Runtime implements RuntimeApi {
         this.logger.debug({ chat: msg.chatId }, "grup: agen tidak disebut, dilewati")
         return
       }
+    }
+
+    // Handoff: bila chat dalam mode manusia, tahan balasan otomatis.
+    if (this.handoff.isActive(msg.chatId)) {
+      this.store.audit({ actor: msg.accountId, action: "skip.handoff", detail: { chatId: msg.chatId } })
+      this.logger.debug({ chat: msg.chatId }, "handoff aktif: agen tidak dijalankan")
+      return
     }
 
     // Hook deterministik milik skill (mis. auto-reply) sebelum memanggil LLM.

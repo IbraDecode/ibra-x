@@ -207,6 +207,14 @@ export interface SpeechApi {
   synthesize(text: string): Promise<string>
 }
 
+/** Handoff ke manusia: menahan balasan otomatis untuk sebuah chat. */
+export interface HandoffApi {
+  enable(chatId: string, reason?: string, opts?: { accountId?: string }): Promise<void>
+  disable(chatId: string, opts?: { accountId?: string }): Promise<void>
+  isActive(chatId: string): boolean
+  list(opts?: { accountId?: string }): Array<{ chatId: string; reason?: string; at: number }>
+}
+
 /** Kapabilitas runtime yang dapat dipanggil tool. */
 export interface RuntimeApi {
   /** ID akun WhatsApp yang sedang aktif. */
@@ -231,6 +239,8 @@ export interface RuntimeApi {
   readonly subagent?: SubagentApi
   /** Sintesis suara (bila diaktifkan). */
   readonly speech?: SpeechApi
+  /** Handoff ke manusia (menahan balasan otomatis per chat). */
+  readonly handoff?: HandoffApi
 }
 
 /** Penyimpanan kunci-nilai ber-namespace untuk sebuah skill. */

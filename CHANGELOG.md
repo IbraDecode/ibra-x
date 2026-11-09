@@ -4,6 +4,15 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.19.0] — 2026-11-09
+
+### Ditambahkan
+- **Handoff ke manusia**: `RuntimeApi.handoff` (enable/disable/isActive/list) menyimpan state
+  per chat secara persisten; saat aktif, balasan otomatis ditahan dan owner diberi tahu.
+- Skill **`handoff`**: tool `request_handoff`/`resolve_handoff`/`list_handoffs` +
+  eskalasi otomatis saat pengguna minta admin/operator/manusia.
+- Fungsi murni `wantsHuman` (batas kata) yang diuji.
+
 ## [0.18.0] — 2026-11-09
 
 ### Ditambahkan

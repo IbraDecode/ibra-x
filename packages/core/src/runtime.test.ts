@@ -150,3 +150,31 @@ test("hook onInbound melakukan short-circuit sebelum memanggil LLM", async () =>
   assert.equal(provider.calls, 0, "provider LLM tidak boleh dipanggil saat hook menangani")
   store.close()
 })
+
+test("handoff menahan balasan otomatis", async () => {
+  const provider = new ScriptedProvider([])
+  const store = new Store(":memory:")
+  const config = ConfigSchema.parse({ autonomy: "auto", ownerNumbers: ["62811"] })
+  const registry = new SkillRegistry()
+  const transport = new FakeTransport()
+  const runtime = new Runtime({ config, store, bus: new EventBus(), logger: noopLogger, provider, registry, transport })
+
+  await runtime.handoff.enable("c1", "uji", { accountId: "a1" })
+  transport.sent.length = 0 // buang notifikasi owner
+
+  await runtime.handleInbound({
+    id: "m1",
+    accountId: "a1",
+    chatId: "c1",
+    chatKind: "dm",
+    senderId: "62811@s.whatsapp.net",
+    fromMe: false,
+    timestamp: 1,
+    text: "halo",
+  })
+
+  assert.equal(provider.calls, 0, "agen tidak dijalankan saat handoff aktif")
+  assert.equal(transport.sent.length, 0, "tidak ada balasan otomatis")
+  assert.ok(runtime.handoff.isActive("c1"))
+  store.close()
+})

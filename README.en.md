@@ -70,6 +70,7 @@ Or with Docker: `docker compose up -d`.
 | `whatsapp` | 23 WhatsApp tools (send text/media, voice notes, reactions, edit/delete, presence, history, group admin, polls, location, number check, profile, block). |
 | `subagents` | Delegate to context-isolated subagents. |
 | `autoreply` | Rule-based auto-replies (keyword/regex) evaluated **before** the LLM. |
+| `handoff` | Human handoff — pauses auto-replies per chat (with auto-escalation). |
 | `notes` | Lightweight notes (add/search/list/delete). |
 | `calendar` | Events + `.ics` calendar invites sent as WhatsApp documents. |
 | `reminders` | Time-based reminders delivered automatically (job). |

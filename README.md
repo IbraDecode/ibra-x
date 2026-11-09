@@ -92,6 +92,7 @@ Tool MCP muncul otomatis sebagai skill dengan prefiks `<id>__`. Lihat [`docs/SKI
 | `whatsapp` | 10 tool WhatsApp (kirim teks/media, reaksi, sunting, hapus, presence, riwayat, grup) |
 | `subagents` | Delegasi ke subagen berkonteks terisolasi |
 | `autoreply` | Balasan otomatis berbasis aturan (hook, **tanpa** memanggil LLM) |
+| `handoff` | Handoff ke manusia — tahan balasan otomatis per chat (dengan eskalasi otomatis) |
 | `notes` | Catatan ringan (tambah/cari/daftar/hapus) |
 | `calendar` | Acara + undangan kalender `.ics` |
 | `reminders` | Pengingat yang dikirim otomatis (job 60s) |
