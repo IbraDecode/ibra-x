@@ -119,6 +119,29 @@ export default defineSkill({
 
 `JobContext` = `{ logger, store, runtime }`. Kegagalan job ditangkap dan dicatat, tidak menghentikan job lain.
 
+## Hook Pesan Masuk (`onInbound`)
+
+Skill dapat menangani pesan **secara deterministik sebelum LLM dipanggil** — hemat biaya, latensi rendah, dapat diprediksi:
+
+```ts
+export default defineSkill({
+  id: "aturan-saya",
+  name: "Aturan Saya",
+  onInbound(ctx) {
+    if (ctx.message.text?.toLowerCase().includes("jam buka")) {
+      return { reply: "Kami buka 09.00–17.00 WIB." }   // agen tidak dijalankan
+    }
+    return undefined                                    // lanjut ke agen
+  },
+})
+```
+
+- `{ reply: string }` → balasan ini dikirim dan agen **tidak** dijalankan (tetap tunduk pada otonomi akun).
+- `{ handled: true }` → pesan dianggap tertangani tanpa balasan.
+- `undefined` → lanjut ke agen.
+
+Hook dijalankan sesuai urutan skill; hook pertama yang mengembalikan hasil menang. Lihat skill `autoreply` sebagai contoh lengkap.
+
 ## Distribusi
 
 - **Lokal**: taruh di `skills/`.

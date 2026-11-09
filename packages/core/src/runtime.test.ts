@@ -1,10 +1,10 @@
 import { strict as assert } from "node:assert"
 import { test } from "node:test"
-import type { CompleteRequest, CompletionResult, Logger, Provider, StreamChunk } from "@ibrax/sdk"
+import type { CompleteRequest, CompletionResult, Logger, Provider, Skill, StreamChunk } from "@ibrax/sdk"
 import { ConfigSchema } from "./config.ts"
 import { Store } from "./db.ts"
 import { EventBus } from "./events.ts"
-import { Runtime } from "./runtime.ts"
+import { Runtime, type Transport } from "./runtime.ts"
 import { SkillRegistry } from "./skills.ts"
 import { subagentSkill } from "./builtin.ts"
 
@@ -52,8 +52,7 @@ test("subagent.run mengembalikan ringkasan anak (konteks terisolasi)", async () 
   store.close()
 })
 
-test("batas kedalaman subagen mencegah rekursi", async () => {
-  // Anak mencoba memanggil spawn_subagent lagi → harus ditolak oleh batas kedalaman.
+test("batas kedalaman subagen mencegah rekursi", async () => {  // Anak mencoba memanggil spawn_subagent lagi → harus ditolak oleh batas kedalaman.
   const provider = new ScriptedProvider([
     {
       message: {
@@ -76,5 +75,78 @@ test("batas kedalaman subagen mencegah rekursi", async () => {
     toolEvents.some((e) => e.tool === "spawn_subagent" && !e.ok),
     "panggilan spawn_subagent bersarang harus gagal karena batas kedalaman",
   )
+  store.close()
+})
+
+class FakeTransport implements Transport {
+  sent: Array<{ accountId: string; chatId: string; text: string }> = []
+  async sendMessage(
+    accountId: string,
+    chatId: string,
+    payload: { text: string } | { mediaPath: string; mime: string; caption?: string },
+  ): Promise<{ messageId: string }> {
+    this.sent.push({ accountId, chatId, text: "text" in payload ? payload.text : (payload.caption ?? "[media]") })
+    return { messageId: "m" }
+  }
+  async markRead(): Promise<void> {}
+  async react(): Promise<void> {}
+  async editMessage(): Promise<void> {}
+  async deleteMessage(): Promise<void> {}
+  async setPresence(): Promise<void> {}
+  async getGroupMetadata(): Promise<undefined> {
+    return undefined
+  }
+  async onWhatsApp(): Promise<Array<{ jid: string; exists: boolean }>> {
+    return []
+  }
+  async groupCreate(): Promise<{ id: string }> {
+    return { id: "g" }
+  }
+  async groupParticipants(): Promise<void> {}
+  async groupInviteCode(): Promise<undefined> {
+    return undefined
+  }
+  async groupSetting(): Promise<void> {}
+  async sendLocation(): Promise<void> {}
+  async sendPoll(): Promise<void> {}
+  async profilePictureUrl(): Promise<undefined> {
+    return undefined
+  }
+  async blockStatus(): Promise<void> {}
+}
+
+test("hook onInbound melakukan short-circuit sebelum memanggil LLM", async () => {
+  const provider = new ScriptedProvider([])
+  const store = new Store(":memory:")
+  const config = ConfigSchema.parse({ autonomy: "auto", ownerNumbers: ["62811"] })
+  const registry = new SkillRegistry()
+  const hookSkill: Skill = { id: "hook", name: "Hook", onInbound: () => ({ reply: "balasan otomatis" }) }
+  registry.register(hookSkill)
+  const transport = new FakeTransport()
+
+  const runtime = new Runtime({
+    config,
+    store,
+    bus: new EventBus(),
+    logger: noopLogger,
+    provider,
+    registry,
+    transport,
+  })
+
+  await runtime.handleInbound({
+    id: "m1",
+    accountId: "a1",
+    chatId: "c1",
+    chatKind: "dm",
+    senderId: "62811@s.whatsapp.net",
+    fromMe: false,
+    timestamp: 1,
+    text: "halo",
+  })
+
+  assert.equal(transport.sent.length, 1)
+  assert.equal(transport.sent[0]!.text, "balasan otomatis")
+  assert.equal(provider.calls, 0, "provider LLM tidak boleh dipanggil saat hook menangani")
   store.close()
 })

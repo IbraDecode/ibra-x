@@ -89,6 +89,7 @@ Tool MCP muncul otomatis sebagai skill dengan prefiks `<id>__`. Lihat [`docs/SKI
 | `core-memory` | Memori jangka panjang: simpan/cari/hapus fakta |
 | `whatsapp` | 10 tool WhatsApp (kirim teks/media, reaksi, sunting, hapus, presence, riwayat, grup) |
 | `subagents` | Delegasi ke subagen berkonteks terisolasi |
+| `autoreply` | Balasan otomatis berbasis aturan (hook, **tanpa** memanggil LLM) |
 | `reminders` | Pengingat yang dikirim otomatis (job 60s) |
 | `scheduler` | Pesan terjadwal (job 30s) |
 | `digest` | Ringkasan harian percakapan (job 5 menit) |

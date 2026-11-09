@@ -289,6 +289,21 @@ export interface SkillJob {
   run(ctx: JobContext): Promise<void>
 }
 
+/** Konteks hook pesan masuk (dipanggil sebelum agen berjalan). */
+export interface InboundHookContext {
+  message: InboundMessage
+  logger: Logger
+  store: SkillStore
+  runtime: RuntimeApi
+}
+
+export interface InboundHookResult {
+  /** Bila diisi, balasan ini dikirim dan agen TIDAK dijalankan. */
+  reply?: string
+  /** Bila true, pesan dianggap tertangani tanpa balasan. */
+  handled?: boolean
+}
+
 export interface Skill {
   /** id unik, mis. "whatsapp", "reminders". */
   id: string
@@ -299,6 +314,8 @@ export interface Skill {
   commands?: SkillCommand[]
   /** Job periodik (cron) milik skill. */
   jobs?: SkillJob[]
+  /** Hook deterministik untuk pesan masuk (short-circuit sebelum LLM). */
+  onInbound?(ctx: InboundHookContext): Promise<InboundHookResult | undefined> | InboundHookResult | undefined
   /** Tambahan system prompt yang aktif selama skill ini terpasang. */
   systemPrompt?: string
   setup?(api: SkillSetupApi): Promise<void> | void

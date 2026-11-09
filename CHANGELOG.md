@@ -4,6 +4,14 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.14.0] — 2026-11-09
+
+### Ditambahkan
+- **Hook pesan masuk** (`Skill.onInbound`) — menangani pesan secara deterministik sebelum LLM
+  (`{ reply }` / `{ handled }`), mengurangi biaya dan latensi.
+- Skill **`autoreply`**: aturan kata kunci/regex dengan tool `add_autoreply`/`list_autoreply`/`remove_autoreply`.
+- `docs/SKILLS.md`: bagian hook pesan masuk.
+
 ## [0.13.0] — 2026-11-09
 
 ### Ditambahkan

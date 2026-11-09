@@ -44,6 +44,7 @@ export interface DefineSkillInput {
   tools?: Tool[]
   commands?: Skill["commands"]
   jobs?: Skill["jobs"]
+  onInbound?: Skill["onInbound"]
   systemPrompt?: string
   setup?: Skill["setup"]
 }
@@ -64,6 +65,7 @@ export function defineSkill(input: DefineSkillInput): Skill {
     tools: input.tools ?? [],
     commands: input.commands ?? [],
     jobs: input.jobs ?? [],
+    onInbound: input.onInbound,
     systemPrompt: input.systemPrompt,
     setup: input.setup,
   }

@@ -454,6 +454,9 @@ export class Runtime implements RuntimeApi {
       }
     }
 
+    // Hook deterministik milik skill (mis. auto-reply) sebelum memanggil LLM.
+    if (await this.runInboundHooks(msg, account)) return
+
     this.logger.info({ account: msg.accountId, chat: msg.chatId, sender: msg.senderId }, "menjalankan agen")
     const result: AgentRunResult = await this.agent.run({
       accountId: msg.accountId,
@@ -471,7 +474,10 @@ export class Runtime implements RuntimeApi {
   private async deliverReply(msg: InboundMessage, account: AccountConfig, result: AgentRunResult): Promise<void> {
     const text = result.text?.trim()
     if (!text) return
+    await this.deliverText(msg, account, text, result.reason)
+  }
 
+  private async deliverText(msg: InboundMessage, account: AccountConfig, text: string, reason: string): Promise<void> {
     const isObserver = account.role === "observer"
     const canSend = !isObserver && this.policy.canSendAutomatically()
 
@@ -489,7 +495,7 @@ export class Runtime implements RuntimeApi {
     this.store.audit({
       actor: msg.accountId,
       action: isObserver ? "observe.suggestion" : "reply.suggestion",
-      detail: { chatId: msg.chatId, senderId: msg.senderId, text, reason: result.reason },
+      detail: { chatId: msg.chatId, senderId: msg.senderId, text, reason },
     })
     this.bus.emit("agent.finished", { sessionId: this.session.sessionId(msg.accountId, msg.chatId), reason: "suggestion", text })
 
@@ -506,5 +512,35 @@ export class Runtime implements RuntimeApi {
         // Diamkan kegagalan notifikasi owner.
       }
     }
+  }
+
+  /**
+   * Menjalankan hook deterministik milik skill (sebelum LLM). Bila sebuah hook
+   * mengembalikan balasan atau menandai pesan tertangani, agen tidak dijalankan.
+   */
+  private async runInboundHooks(msg: InboundMessage, account: AccountConfig): Promise<boolean> {
+    for (const skill of this.registry.list()) {
+      if (!skill.onInbound) continue
+      try {
+        const result = await skill.onInbound({
+          message: msg,
+          logger: this.logger.child({ skill: skill.id }),
+          store: this.skillStore(skill.id),
+          runtime: this,
+        })
+        if (result?.reply) {
+          this.store.audit({ actor: msg.accountId, action: "hook.reply", detail: { skill: skill.id } })
+          await this.deliverText(msg, account, result.reply, `hook:${skill.id}`)
+          return true
+        }
+        if (result?.handled) {
+          this.store.audit({ actor: msg.accountId, action: "hook.handled", detail: { skill: skill.id } })
+          return true
+        }
+      } catch (error) {
+        this.logger.error({ error, skill: skill.id }, "hook onInbound gagal")
+      }
+    }
+    return false
   }
 }
