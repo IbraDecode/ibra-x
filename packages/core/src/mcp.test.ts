@@ -83,3 +83,15 @@ test("skill MCP memetakan tool dan menandai risiko", async () => {
   const result = await skill.tools![0]!.execute({ text: "x" }, {} as ToolContext)
   assert.equal(result, "echo:x")
 })
+
+test("client MCP timeout bila server tidak merespons", async () => {
+  const silent: McpTransport = {
+    onMessage() {},
+    onError() {},
+    async start() {},
+    send() {},
+    async close() {},
+  }
+  const client = new McpClient(silent, undefined, 20)
+  await assert.rejects(() => client.initialize(), /timeout/)
+})

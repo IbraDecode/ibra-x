@@ -302,7 +302,9 @@ export class AccountRuntime {
     if (!buffer?.length) return undefined
     const dir = resolve(this.opts.dataDir, "media")
     await mkdir(dir, { recursive: true })
-    const path = join(dir, `${id}.${extensionForMime(mime)}`)
+    // Sanitasi id agar tidak dapat keluar dari direktori media (defense-in-depth).
+    const safeId = id.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 128)
+    const path = join(dir, `${safeId}.${extensionForMime(mime)}`)
     await writeFile(path, buffer)
     return path
   }

@@ -1,5 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process"
 import { defineSkill, type JsonSchemaObject, type Logger, type Skill, type Tool } from "@ibrax/sdk"
+import { VERSION } from "./version.ts"
 
 // ---------------------------------------------------------------------------
 // JSON-RPC / MCP
@@ -45,6 +46,7 @@ export class McpClient {
   constructor(
     private readonly transport: McpTransport,
     private readonly logger?: Logger,
+    private readonly requestTimeoutMs = 30_000,
   ) {
     transport.onMessage((message) => this.handle(message))
     transport.onError((error) => this.failAll(error))
@@ -68,7 +70,21 @@ export class McpClient {
     if (this.closed) return Promise.reject(new Error("MCP client sudah ditutup"))
     const id = this.nextId++
     return new Promise<T>((resolve, reject) => {
-      this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject })
+      // Timeout agar permintaan tidak menggantung selamanya bila server MCP diam.
+      const timer = setTimeout(() => {
+        if (this.pending.delete(id)) reject(new Error(`MCP request timeout (${method}, ${this.requestTimeoutMs}ms)`))
+      }, this.requestTimeoutMs)
+      timer.unref?.()
+      this.pending.set(id, {
+        resolve: (v: unknown) => {
+          clearTimeout(timer)
+          resolve(v as T)
+        },
+        reject: (e: Error) => {
+          clearTimeout(timer)
+          reject(e)
+        },
+      })
       this.transport.send({ jsonrpc: "2.0", id, method, params })
     })
   }
@@ -82,7 +98,7 @@ export class McpClient {
     const result = (await this.request<{ serverInfo?: { name?: string; version?: string } }>("initialize", {
       protocolVersion: PROTOCOL_VERSION,
       capabilities: {},
-      clientInfo: { name: "ibra-x", version: "0.1.0" },
+      clientInfo: { name: "ibra-x", version: VERSION },
     })) as { serverInfo?: { name?: string; version?: string } }
     this.serverInfo = result?.serverInfo
     this.notify("notifications/initialized")

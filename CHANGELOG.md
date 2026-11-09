@@ -4,6 +4,18 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.28.0] — 2026-11-09
+
+### Diperbaiki
+- **MCP tanpa timeout**: permintaan ke server MCP kini dibatasi waktu (default 30 detik),
+  sehingga server yang diam tidak lagi menggantung proses. Versi klien pada handshake
+  memakai `VERSION` (sebelumnya hardcoded `0.1.0`).
+- **Sanitasi nama berkas media**: id pesan dibersihkan sebelum dipakai sebagai nama berkas
+  (`<dataDir>/media`), mencegah path traversal (defense-in-depth).
+
+### Ditambahkan
+- Tes timeout MCP.
+
 ## [0.27.0] — 2026-11-09
 
 ### Ditambahkan
