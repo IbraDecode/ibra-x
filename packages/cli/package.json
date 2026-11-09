@@ -1,6 +1,6 @@
 {
   "name": "@ibrax/cli",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "CLI Ibra X (`ibrax`): init, start, pair, status, doctor, skills, memory, chat.",
   "license": "MIT",
   "type": "module",

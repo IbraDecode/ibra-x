@@ -163,6 +163,11 @@ export function applyEnv(raw: Record<string, unknown>, env: NodeJS.ProcessEnv = 
   if (env.IBRA_RATE_PER_CHAT) {
     ;(out as any).limits = { ...((out as any).limits ?? {}), perChatPerMinute: Number(env.IBRA_RATE_PER_CHAT) }
   }
+  if (env.IBRA_OWNER_NUMBERS !== undefined) {
+    ;(out as any).ownerNumbers = env.IBRA_OWNER_NUMBERS.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  }
   return out
 }
 

@@ -31,7 +31,10 @@ program
   .description("Tautkan akun WhatsApp dengan kode pairing")
   .argument("<accountId>", "ID akun (lihat `ibrax status`)")
   .argument("<phone>", "Nomor WhatsApp tanpa tanda plus, mis. 62812xxxxxxx")
-  .action((accountId: string, phone: string) => run(() => cmdPair(accountId, phone))())
+  .option("--reset", "Hapus sesi akun lebih dulu (tautkan ulang bersih)")
+  .action((accountId: string, phone: string, opts: { reset?: boolean }) =>
+    run(() => cmdPair(accountId, phone, opts))(),
+  )
 program.command("status").description("Tampilkan ringkasan status").action(run(cmdStatus))
 program.command("doctor").description("Diagnostik lingkungan & penyedia").action(run(cmdDoctor))
 program.command("skills").description("Daftar skill & tool terpasang").action(run(cmdSkills))

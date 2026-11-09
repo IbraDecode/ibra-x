@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { createInterface } from "node:readline/promises"
 import pc from "picocolors"
@@ -144,13 +144,30 @@ export async function cmdStart(): Promise<void> {
 // pair
 // ---------------------------------------------------------------------------
 
-export async function cmdPair(accountId: string, phone: string): Promise<void> {
+export async function cmdPair(accountId: string, phone: string, opts: { reset?: boolean } = {}): Promise<void> {
   const { config } = loadContext()
+
+  if (opts.reset) {
+    const dir = resolve(process.cwd(), config.dataDir, "auth", accountId)
+    rmSync(dir, { recursive: true, force: true })
+    console.log(pc.yellow(`↺ Auth "${accountId}" dihapus (reset bersih).`))
+  }
+
   const app = await createApp(config, { printQr: false })
   try {
     console.log(pc.dim(`Menjalankan akun ${accountId}…`))
     const runtime = await app.manager.startAccount(accountId)
-    const code = await runtime.requestPairingCode(phone.replace(/[^0-9]/g, ""))
+    // Beri waktu socket menyambung sebelum meminta kode pairing.
+    await new Promise((r) => setTimeout(r, 2500))
+
+    let code: string
+    try {
+      code = await runtime.requestPairingCode(phone.replace(/[^0-9]/g, ""))
+    } catch (error) {
+      console.error(pc.red(`Gagal meminta kode pairing: ${error instanceof Error ? error.message : String(error)}`))
+      console.error(pc.dim(`Coba reset: ibrax pair --reset ${accountId} ${phone}`))
+      return
+    }
     console.log(pc.bold(pc.green(`\nKode pairing: ${code}\n`)))
     console.log("Buka WhatsApp → Perangkat Tertaut → Tautkan dengan nomor telepon, lalu masukkan kode di atas.")
     await new Promise<void>((resolve) => {
@@ -164,7 +181,7 @@ export async function cmdPair(accountId: string, phone: string): Promise<void> {
       setTimeout(() => {
         clearInterval(t)
         resolve()
-      }, 120_000)
+      }, 300_000)
     })
   } finally {
     app.stop()

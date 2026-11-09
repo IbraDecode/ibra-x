@@ -426,23 +426,28 @@ export class Runtime implements RuntimeApi {
     await this.processInboxOnce(1)
   }
 
-  /** Mengambil pesan pending dari antrean dan memprosesnya secara berurutan. */
+  /** Mengambil pesan pending dari antrean dan memprosesnya sampai habis (drain). */
   async processInboxOnce(limit = 10): Promise<number> {
     if (this.processing) return 0
     this.processing = true
     let processed = 0
     try {
-      const rows = this.store.takePendingInbox(limit)
-      for (const row of rows) {
-        this.store.setInboxState(row.id, "processing")
-        try {
-          const msg = JSON.parse(row.payload) as InboundMessage
-          await this.processMessage(msg)
-          this.store.setInboxState(row.id, "done")
-          processed++
-        } catch (error) {
-          this.logger.error({ error, inbox: row.id }, "gagal memproses pesan, dikembalikan ke antrean")
-          this.store.setInboxState(row.id, "pending")
+      // Drain: terus ambil batch sampai antrean kosong, sehingga pesan yang
+      // datang saat pemrosesan tidak "kelaparan" (starvation).
+      for (;;) {
+        const rows = this.store.takePendingInbox(limit)
+        if (!rows.length) break
+        for (const row of rows) {
+          this.store.setInboxState(row.id, "processing")
+          try {
+            const msg = JSON.parse(row.payload) as InboundMessage
+            await this.processMessage(msg)
+            this.store.setInboxState(row.id, "done")
+            processed++
+          } catch (error) {
+            this.logger.error({ error, inbox: row.id }, "gagal memproses pesan, dikembalikan ke antrean")
+            this.store.setInboxState(row.id, "pending")
+          }
         }
       }
     } finally {
@@ -576,10 +581,25 @@ export class Runtime implements RuntimeApi {
 
     if (canSend) {
       try {
+        await this.transport?.setPresence(msg.accountId, msg.chatId, "composing")
+      } catch {
+        // abaikan
+      }
+      try {
         await this.sendMessage(msg.chatId, { text }, { accountId: msg.accountId })
       } catch (error) {
         this.logger.error({ error, chat: msg.chatId }, "gagal mengirim balasan")
         this.bus.emit("error", { scope: "runtime.send", error })
+      }
+      try {
+        await this.transport?.setPresence(msg.accountId, msg.chatId, "paused")
+      } catch {
+        // abaikan
+      }
+      try {
+        await this.transport?.markRead(msg.accountId, msg.chatId, [msg.id])
+      } catch {
+        // abaikan
       }
       return
     }

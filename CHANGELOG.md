@@ -4,6 +4,19 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.21.0] — 2026-11-09
+
+### Riset & audit
+- Riset mendalam Baileys v7 (pairing, DisconnectReason, ChatModification, ParticipantAction) → `docs/AUDIT.md`.
+
+### Diperbaiki
+- **Pesan ganda**: system prompt melarang `wa_send_message` ke chat saat ini (harness yang mengirim).
+- **Kelaparan antrean**: `processInboxOnce` menjadi drain loop sampai antrean kosong.
+- **Reconnect**: kode terminal (401/403/411/500) menghentikan dengan panduan; lainnya backoff eksponensial (cap 60s).
+- **Pairing**: flag `--reset`, penanganan error yang jelas, jeda sebelum meminta kode.
+- **UX**: presence composing→paused + markRead best-effort saat membalas.
+- **Provider custom**: memprioritaskan `CUSTOM_BASE_URL`.
+
 ## [0.20.0] — 2026-11-09
 
 ### Ditambahkan

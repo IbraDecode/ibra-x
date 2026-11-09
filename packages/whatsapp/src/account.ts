@@ -50,6 +50,7 @@ export class AccountRuntime {
   private sendChain: Promise<unknown> = Promise.resolve()
   private reconnectTimer?: NodeJS.Timeout
   private stopped = false
+  private reconnectAttempts = 0
   private readonly pinoLogger: PinoLogger
 
   constructor(private readonly opts: AccountRuntimeOptions) {
@@ -155,6 +156,7 @@ export class AccountRuntime {
     }
 
     if (connection === "open") {
+      this.reconnectAttempts = 0
       this.setStatus("open")
       this.opts.logger.info({ account: this.id }, "WhatsApp terhubung")
       return
@@ -166,14 +168,26 @@ export class AccountRuntime {
 
       if (this.stopped) return
 
-      if (code === DisconnectReason.loggedOut) {
-        this.opts.logger.error({ account: this.id }, "sesi logout — perlu tautkan ulang")
+      // Kode yang menandakan sesi tidak dapat dilanjutkan → butuh tautkan ulang.
+      const terminalCodes = new Set<number | undefined>([
+        DisconnectReason.loggedOut, // 401
+        DisconnectReason.forbidden, // 403
+        DisconnectReason.multideviceMismatch, // 411
+        DisconnectReason.badSession, // 500
+      ])
+      if (terminalCodes.has(code)) {
         this.stopped = true
+        this.opts.logger.error(
+          { account: this.id, code },
+          "sesi tidak dapat dilanjutkan — jalankan `ibrax pair --reset <akun> <nomor>` untuk menautkan ulang",
+        )
         return
       }
 
-      const delay = code === RESTART_CODE ? 1_000 : 3_000
-      this.opts.logger.warn({ account: this.id, code }, `koneksi tertutup, menyambung ulang dalam ${delay}ms`)
+      if (code === RESTART_CODE) this.reconnectAttempts = 0
+      const delay = code === RESTART_CODE ? 1_000 : Math.min(60_000, 2 ** this.reconnectAttempts * 1_000)
+      this.reconnectAttempts++
+      this.opts.logger.warn({ account: this.id, code, delayMs: delay }, "koneksi tertutup, menyambung ulang")
       this.scheduleReconnect(delay)
     }
   }
@@ -183,7 +197,9 @@ export class AccountRuntime {
     this.reconnectTimer = setTimeout(() => {
       void this.start().catch((error) => {
         this.opts.logger.error({ error, account: this.id }, "gagal menyambung ulang, mencoba lagi")
-        this.scheduleReconnect(5_000)
+        const backoff = Math.min(60_000, 2 ** this.reconnectAttempts * 1_000)
+        this.reconnectAttempts++
+        this.scheduleReconnect(backoff)
       })
     }, delayMs)
   }

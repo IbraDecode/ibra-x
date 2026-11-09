@@ -28,6 +28,8 @@ export function resolveProvider(opts: ResolveProviderOptions) {
   }
 
   let baseUrl = opts.baseUrl ?? info.baseUrl
+  // Provider "custom" memprioritaskan env CUSTOM_BASE_URL agar mudah dikonfigurasi.
+  if (opts.providerId === "custom" && process.env.CUSTOM_BASE_URL) baseUrl = process.env.CUSTOM_BASE_URL
   if (!baseUrl && opts.providerId === "custom") baseUrl = process.env.CUSTOM_BASE_URL ?? ""
 
   const apiKey = opts.apiKey ?? (info.apiKeyEnv ? process.env[info.apiKeyEnv] : undefined)
