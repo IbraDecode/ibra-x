@@ -85,7 +85,7 @@ Skill bawaan `whatsapp` mengekspos operasi ini sebagai tool (semuanya tunduk pad
 | `wa_list_chats` | low | Daftar chat |
 | `wa_group_info` | low | Info grup & peserta |
 
-Media masuk diunduh otomatis ke `<dataDir>/media/` agar dapat diproses lebih lanjut.
+Media masuk diunduh otomatis ke `<dataDir>/media/`. Aktifkan **transkripsi pesan suara** otomatis dengan `IBRA_TRANSCRIBE=true` (atau `media.transcribe` di config) — transkrip akan dilampirkan ke konteks agen.
 
 ---
 

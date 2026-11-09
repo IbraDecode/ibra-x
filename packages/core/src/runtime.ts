@@ -4,6 +4,7 @@ import { Agent, type AgentRunResult } from "./agent.ts"
 import type { AccountConfig, IbraConfig } from "./config.ts"
 import type { Store } from "./db.ts"
 import type { EventBus } from "./events.ts"
+import type { Transcriber } from "./media.ts"
 import { MemoryService } from "./memory.ts"
 import { Policy } from "./policy.ts"
 import { SessionManager } from "./session.ts"
@@ -39,6 +40,8 @@ export interface RuntimeOptions {
   transport?: Transport
   /** Bila true, aksi `ask` dijalankan otomatis (dipakai CLI --yes / mode auto). */
   autoApprove?: boolean
+  /** Transkripsi audio otomatis untuk pesan suara masuk. */
+  transcriber?: Transcriber
 }
 
 /**
@@ -86,6 +89,7 @@ export class Runtime implements RuntimeApi {
 
   private readonly config: IbraConfig
   private readonly transport?: Transport
+  private readonly transcriber?: Transcriber
   private currentAccountId: string
   private processing = false
 
@@ -99,6 +103,7 @@ export class Runtime implements RuntimeApi {
     this.memory = new MemoryService(opts.store, opts.bus)
     this.registry = opts.registry
     this.transport = opts.transport
+    this.transcriber = opts.transcriber
     this.currentAccountId = opts.config.accounts[0]?.id ?? "default"
 
     this.agent = new Agent({
@@ -265,6 +270,20 @@ export class Runtime implements RuntimeApi {
       kind: msg.chatKind,
       name: undefined,
     })
+
+    // Transkripsi pesan suara otomatis agar agen "memahami" audio.
+    if (this.transcriber && msg.media?.localPath && msg.media.kind === "audio") {
+      try {
+        const transcript = await this.transcriber.transcribe(msg.media.localPath, msg.media.mime)
+        if (transcript) {
+          msg.text = `${msg.text ? msg.text + "\n" : ""}[transkripsi suara] ${transcript}`
+          this.store.audit({ actor: msg.accountId, action: "media.transcribe", detail: { id: msg.id } })
+        }
+      } catch (error) {
+        this.logger.warn({ error, id: msg.id }, "transkripsi gagal")
+      }
+    }
+
     this.store.insertMessage({
       id: msg.id,
       accountId: msg.accountId,

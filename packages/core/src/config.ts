@@ -46,6 +46,15 @@ export const ConfigSchema = z.object({
     })
     .default({ dirs: ["skills"], packages: [], disabled: [] }),
   mcpServers: z.record(McpServerSchema).default({}),
+  /** Pemrosesan media masuk. */
+  media: z
+    .object({
+      /** Transkripsikan pesan suara otomatis (butuh provider yang mendukung audio). */
+      transcribe: z.boolean().default(false),
+      transcribeModel: z.string().default("whisper-1"),
+      maxAudioBytes: z.number().int().positive().default(25 * 1024 * 1024),
+    })
+    .default({ transcribe: false, transcribeModel: "whisper-1", maxAudioBytes: 25 * 1024 * 1024 }),
   /** Persona/system prompt dasar agen. */
   persona: z
     .string()
@@ -87,6 +96,9 @@ export function applyEnv(raw: Record<string, unknown>, env: NodeJS.ProcessEnv = 
     ;(out as any).allowlist = env.IBRA_ALLOWLIST.split(",")
       .map((s) => s.trim())
       .filter(Boolean)
+  }
+  if (env.IBRA_TRANSCRIBE !== undefined) {
+    ;(out as any).media = { ...((out as any).media ?? {}), transcribe: env.IBRA_TRANSCRIBE === "true" }
   }
   return out
 }

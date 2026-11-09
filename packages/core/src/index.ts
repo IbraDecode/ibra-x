@@ -10,6 +10,7 @@ export * from "./builtin.ts"
 export * from "./agent.ts"
 export * from "./runtime.ts"
 export * from "./mcp.ts"
+export * from "./media.ts"
 
 export type {
   InboundMessage,

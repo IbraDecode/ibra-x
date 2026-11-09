@@ -5,6 +5,7 @@ import {
   Store,
   coreMemorySkill,
   createLogger,
+  createTranscriber,
   ensureDataDir,
   loadMcpSkills,
   loadSkills,
@@ -12,7 +13,7 @@ import {
   type SkillRegistry,
 } from "@ibrax/core"
 import type { Logger, SkillStore } from "@ibrax/sdk"
-import { resolveProvider } from "@ibrax/providers"
+import { findPreset, resolveProvider } from "@ibrax/providers"
 import { WhatsAppManager, whatsappSkill, type AccountStatus } from "@ibrax/whatsapp"
 
 export interface CreateAppOptions {
@@ -83,6 +84,22 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
     printQr: opts.printQr,
   })
 
+  // Transkripsi audio (opsional) memakai endpoint penyedia aktif.
+  let transcriber
+  if (config.media.transcribe) {
+    const preset = findPreset(config.provider)
+    const apiKey = preset?.apiKeyEnv ? process.env[preset.apiKeyEnv] : undefined
+    if (preset) {
+      transcriber = createTranscriber({
+        baseUrl: preset.baseUrl,
+        apiKey,
+        model: config.media.transcribeModel,
+        maxBytes: config.media.maxAudioBytes,
+      })
+      logger.info({ model: config.media.transcribeModel }, "transkripsi audio aktif")
+    }
+  }
+
   const runtime = new Runtime({
     config,
     store,
@@ -92,6 +109,7 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
     registry,
     transport: manager,
     autoApprove: opts.autoApprove,
+    transcriber,
   })
 
   manager.setInboundHandler((msg) => runtime.handleInbound(msg))
