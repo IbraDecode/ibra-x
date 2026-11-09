@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import type { InboundMessage, Logger, RuntimeApi, SkillStore, ToolContext, WhatsAppOps } from "@ibrax/sdk"
+import type { InboundMessage, Logger, RuntimeApi, SkillStore, SubagentApi, ToolContext, WhatsAppOps } from "@ibrax/sdk"
 import { Agent, type AgentRunResult } from "./agent.ts"
 import type { AccountConfig, IbraConfig } from "./config.ts"
 import type { Store } from "./db.ts"
@@ -58,6 +58,35 @@ export class Runtime implements RuntimeApi {
   readonly memory: MemoryService
   readonly registry: SkillRegistry
   readonly agent: Agent
+
+  /** Delegasi ke subagen berkonteks terisolasi. */
+  readonly subagent: SubagentApi = {
+    run: async (task, opts) => {
+      const maxDepth = this.config.maxSubagentDepth
+      if (this.subagentDepth >= maxDepth) {
+        throw new Error(`Batas kedalaman subagen tercapai (${maxDepth}).`)
+      }
+      this.subagentDepth++
+      const childSession = `sub:${randomUUID()}`
+      try {
+        this.bus.emit("agent.step", { sessionId: childSession, step: 0, kind: "llm", detail: "subagent" })
+        const result = await this.agent.run({
+          accountId: this.currentAccountId,
+          chatId: childSession,
+          chatKind: "dm",
+          role: opts?.role ?? "hybrid",
+          senderId: "subagent",
+          sessionId: childSession,
+          model: opts?.model,
+        })
+        return { text: result.text, reason: result.reason, steps: result.steps }
+      } finally {
+        this.subagentDepth--
+      }
+    },
+  }
+
+  private subagentDepth = 0
 
   /** Operasi WhatsApp lanjutan yang dapat dipanggil tool. */
   readonly whatsapp: WhatsAppOps = {

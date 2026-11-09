@@ -11,6 +11,7 @@ import {
   loadMcpSkills,
   loadSkills,
   registerSkillJobs,
+  subagentSkill,
   type IbraConfig,
   type SkillRegistry,
 } from "@ibrax/core"
@@ -66,7 +67,7 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
     dirs: config.skills.dirs,
     packages: config.skills.packages,
     disabled: config.skills.disabled,
-    builtins: [coreMemorySkill, whatsappSkill],
+    builtins: [coreMemorySkill, whatsappSkill, subagentSkill],
     store: rootSkillStore,
     logger: logger.child({ comp: "skills" }),
   })

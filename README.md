@@ -98,6 +98,10 @@ Agen dapat bertindak **proaktif** lewat job periodik yang dideklarasikan skill:
 
 Skill kustom dapat menambahkan `jobs` sendiri (lihat [`docs/SKILLS.md`](docs/SKILLS.md)). State job disimpan di `SkillStore` masing-masing, sehingga scheduler tetap sederhana tanpa layanan eksternal.
 
+## Subagen (delegasi)
+
+Agen dapat mendelegasikan tugas mandiri ke **subagen berkonteks terisolasi** lewat tool `spawn_subagent`. Hanya ringkasan akhir yang kembali, sehingga konteks percakapan utama tetap ringkas. Kedalaman bersarang dibatasi `maxSubagentDepth` (default 1) untuk mencegah rekursi tak terkendali.
+
 ---
 
 ## Dokumentasi

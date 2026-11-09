@@ -12,6 +12,7 @@ import {
   loadDotEnv,
   loadSkills,
   saveConfig,
+  subagentSkill,
   configPath,
   type IbraConfig,
 } from "@ibrax/core"
@@ -180,7 +181,7 @@ export async function cmdStatus(): Promise<void> {
     dirs: config.skills.dirs,
     packages: config.skills.packages,
     disabled: config.skills.disabled,
-    builtins: [coreMemorySkill, whatsappSkill],
+    builtins: [coreMemorySkill, whatsappSkill, subagentSkill],
     store: { get: async () => undefined, set: async () => {}, delete: async () => {}, list: async () => [] },
     logger: createLogger({ level: "error" }),
   })
@@ -243,7 +244,7 @@ export async function cmdSkills(): Promise<void> {
     dirs: config.skills.dirs,
     packages: config.skills.packages,
     disabled: config.skills.disabled,
-    builtins: [coreMemorySkill, whatsappSkill],
+    builtins: [coreMemorySkill, whatsappSkill, subagentSkill],
     store: { get: async () => undefined, set: async () => {}, delete: async () => {}, list: async () => [] },
     logger: createLogger({ level: "error" }),
   })

@@ -158,6 +158,12 @@ export interface WhatsAppOps {
   getGroupInfo(chatId: string, opts?: { accountId?: string }): Promise<{ id: string; name?: string; participants: string[] } | undefined>
 }
 
+/** Delegasi ke sub-agen dengan konteks terisolasi. */
+export interface SubagentApi {
+  /** Menjalankan sub-agen; hanya ringkasan akhir yang kembali ke pemanggil. */
+  run(task: string, opts?: { model?: string; role?: string }): Promise<{ text: string; reason: string; steps: number }>
+}
+
 /** Kapabilitas runtime yang dapat dipanggil tool. */
 export interface RuntimeApi {
   /** ID akun WhatsApp yang sedang aktif. */
@@ -178,6 +184,8 @@ export interface RuntimeApi {
   readonly memory: MemoryApi
   /** Operasi WhatsApp lanjutan (bila transport mendukung). */
   readonly whatsapp?: WhatsAppOps
+  /** Delegasi ke sub-agen (bila diaktifkan). */
+  readonly subagent?: SubagentApi
 }
 
 /** Penyimpanan kunci-nilai ber-namespace untuk sebuah skill. */

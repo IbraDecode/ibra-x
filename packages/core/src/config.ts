@@ -29,6 +29,8 @@ export const ConfigSchema = z.object({
   temperature: z.number().min(0).max(2).default(0.3),
   maxSteps: z.number().int().positive().default(16),
   maxTokensPerTurn: z.number().int().positive().default(8000),
+  /** Kedalaman maksimum subagen bersarang (1 = subagen tidak boleh punya anak). */
+  maxSubagentDepth: z.number().int().positive().default(1),
   autonomy: z.enum(["readonly", "suggest", "auto", "autonomous"]).default("suggest"),
   allowlist: z.array(z.string()).default([]),
   ownerNumbers: z.array(z.string()).default([]),

@@ -23,6 +23,38 @@ export const finishTool = defineTool<{ text: string; reason?: string }, { ok: tr
   },
 })
 
+/** Skill bawaan: delegasi ke subagen dengan konteks terisolasi. */
+export const subagentSkill = defineSkill({
+  id: "subagents",
+  name: "Subagen",
+  description: "Mendelegasikan tugas mandiri ke subagen berkonteks terisolasi.",
+  systemPrompt:
+    "Gunakan `spawn_subagent` untuk tugas mandiri yang butuh konteks terpisah (riset, analisis, " +
+    "pekerjaan panjang). Hanya ringkasan akhir subagen yang kembali; sertakan semua konteks yang " +
+    "diperlukan dalam `task` karena subagen tidak melihat riwayat percakapan ini.",
+  tools: [
+    defineTool<{ task: string; model?: string }, { text: string; reason: string; steps: number }>({
+      name: "spawn_subagent",
+      description:
+        "Jalankan subagen untuk menyelesaikan `task` dan kembalikan ringkasannya. Subagen memiliki konteks kosong, " +
+        "jadi berikan instruksi lengkap.",
+      parameters: {
+        type: "object",
+        properties: {
+          task: { type: "string", description: "Instruksi lengkap untuk subagen." },
+          model: { type: "string", description: "Model khusus (opsional)." },
+        },
+        required: ["task"],
+      },
+      risk: "low",
+      async execute(input, ctx) {
+        if (!ctx.runtime.subagent) throw new Error("Subagen tidak tersedia pada runtime ini.")
+        return ctx.runtime.subagent.run(input.task, { model: input.model })
+      },
+    }),
+  ],
+})
+
 /** Skill bawaan: tool memori jangka panjang. */
 export const coreMemorySkill = defineSkill({
   id: "core-memory",
