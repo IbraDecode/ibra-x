@@ -11,6 +11,8 @@ export const AccountSchema = z.object({
   respondTo: z.enum(["owner", "allowlist", "all"]).default("allowlist"),
   /** Hanya balas bila agen disebut (grup). */
   mentionOnly: z.boolean().default(false),
+  /** Izinkan agen merespons di self-chat (pemilik mengirim ke nomornya sendiri). */
+  selfChat: z.boolean().default(false),
   /** Model khusus untuk akun ini (menimpa default). */
   model: z.string().optional(),
 })
@@ -57,6 +59,8 @@ export const ConfigSchema = z.object({
     })
     .default({ enabled: false, from: "22:00", to: "07:00" }),
   autonomy: z.enum(["readonly", "suggest", "auto", "autonomous"]).default("suggest"),
+  /** Usia maksimum pesan (detik) agar masih dibalas. 0 = tanpa batas. Mencegah banjir balasan atas backlog offline. */
+  replyMaxAgeSeconds: z.number().int().min(0).default(300),
   allowlist: z.array(z.string()).default([]),
   ownerNumbers: z.array(z.string()).default([]),
   apiToken: z.string().default(""),
@@ -139,6 +143,7 @@ export function applyEnv(raw: Record<string, unknown>, env: NodeJS.ProcessEnv = 
   if (env.IBRA_TEMPERATURE) (out as any).temperature = Number(env.IBRA_TEMPERATURE)
   if (env.IBRA_MAX_STEPS) (out as any).maxSteps = Number(env.IBRA_MAX_STEPS)
   if (env.IBRA_MAX_TOKENS_PER_TURN) (out as any).maxTokensPerTurn = Number(env.IBRA_MAX_TOKENS_PER_TURN)
+  if (env.IBRA_REPLY_MAX_AGE !== undefined) (out as any).replyMaxAgeSeconds = Number(env.IBRA_REPLY_MAX_AGE)
   if (env.IBRA_ALLOWLIST !== undefined) {
     ;(out as any).allowlist = env.IBRA_ALLOWLIST.split(",")
       .map((s) => s.trim())

@@ -4,6 +4,32 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.22.0] — 2026-11-09
+
+### Ditambahkan
+- **Self-chat**: akun dapat merespons percakapan pemilik ke nomornya sendiri
+  (`accounts[].selfChat`, default `false`). Pemilik kini bisa mengobrol dengan agen
+  di self-chat, dengan otoritas owner penuh.
+- **Guard pesan basi**: `replyMaxAgeSeconds` (default `300`, env `IBRA_REPLY_MAX_AGE`)
+  mencegah banjir balasan atas backlog pesan offline/lama. `0` = tanpa batas.
+- **Cache in-memory** (`MemoryCache`) tanpa dependensi: dipakai untuk
+  `msgRetryCounterCache` (anti-loop "Bad MAC") dan `cachedGroupMetadata` (kirim grup lebih cepat).
+
+### Diperbaiki
+- **Pembungkus pesan bersarang**: `ephemeralMessage`, `viewOnceMessageV2`,
+  `documentWithCaptionMessage`, `editedMessage`, `deviceSentMessage`, dsb. kini diupas
+  rekursif — sebelumnya teks/media pada chat sementara atau sekali-lihat terlewat.
+- **Anti-loop gema**: ID pesan yang dikirim bot dilacak; gemanya (`isEcho`) tidak pernah
+  memicu agen, sehingga tidak ada balasan berulang.
+- **Pesan sistem**: `protocolMessage`/`reactionMessage` tanpa teks kini ditandai `isSystem`
+  dan tidak memicu agen (sebelumnya berpotensi memicu balasan kosong).
+- **Race antrean masuk**: kunci dilepas sebelum pengecekan akhir, sehingga pesan yang
+  tiba tepat saat drain tidak lagi "nyangkut" — ditutup dengan loop verifikasi (`hasPendingInbox`).
+
+### Catatan
+- Riset protokol: `syncFullHistory`/`getMessage` penuh (untuk retry dekripsi & dekripsi poll)
+  dijadwalkan pada rilis berikutnya karena memerlukan penyimpanan proto mentah.
+
 ## [0.21.0] — 2026-11-09
 
 ### Riset & audit

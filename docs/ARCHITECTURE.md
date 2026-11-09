@@ -47,6 +47,14 @@ Satu proses dapat menjalankan **beberapa akun WhatsApp**, masing-masing satu `WA
 
 > Catatan teknis penting: sesi Baileys adalah *perangkat pendamping* (companion) dari satu nomor ponsel. Ia melihat chat yang diikuti oleh nomor tersebut. Untuk "membaca seluruh lalu lintas", gunakan `observer` pada nomor utama Anda (sebagai companion), atau tambahkan nomor pengamat ke grup yang relevan. Ini keterbatasan protokol, bukan pilihan desain.
 
+### Self-chat
+
+Selain peran di atas, sebuah akun dapat mengaktifkan `selfChat`. Bila aktif, agen merespons
+percakapan pemilik **ke nomornya sendiri** (self-chat) dengan otoritas owner penuh — berguna
+sebagai catatan/komando pribadi. Untuk mencegah loop, ID setiap pesan yang dikirim bot dilacak:
+gema pesan bot (`isEcho`) tidak pernah memicu agen, sedangkan pesan yang benar-benar diketik
+pemilik di ponsel tetap diproses.
+
 ---
 
 ## 4. Alur Sistem

@@ -323,6 +323,7 @@ export class Runtime implements RuntimeApi {
         enabled: true,
         respondTo: "allowlist",
         mentionOnly: false,
+        selfChat: false,
       }
     )
   }
@@ -428,30 +429,34 @@ export class Runtime implements RuntimeApi {
 
   /** Mengambil pesan pending dari antrean dan memprosesnya sampai habis (drain). */
   async processInboxOnce(limit = 10): Promise<number> {
-    if (this.processing) return 0
-    this.processing = true
     let processed = 0
-    try {
-      // Drain: terus ambil batch sampai antrean kosong, sehingga pesan yang
-      // datang saat pemrosesan tidak "kelaparan" (starvation).
-      for (;;) {
-        const rows = this.store.takePendingInbox(limit)
-        if (!rows.length) break
-        for (const row of rows) {
-          this.store.setInboxState(row.id, "processing")
-          try {
-            const msg = JSON.parse(row.payload) as InboundMessage
-            await this.processMessage(msg)
-            this.store.setInboxState(row.id, "done")
-            processed++
-          } catch (error) {
-            this.logger.error({ error, inbox: row.id }, "gagal memproses pesan, dikembalikan ke antrean")
-            this.store.setInboxState(row.id, "pending")
+    // Loop luar menutup celah balapan: pesan yang tiba tepat setelah kunci
+    // dilepas akan tetap terproses, sehingga tidak pernah "nyangkut" di antrean.
+    for (let round = 0; round < 1000; round++) {
+      if (this.processing) return processed
+      this.processing = true
+      try {
+        for (;;) {
+          const rows = this.store.takePendingInbox(limit)
+          if (!rows.length) break
+          for (const row of rows) {
+            this.store.setInboxState(row.id, "processing")
+            try {
+              const msg = JSON.parse(row.payload) as InboundMessage
+              await this.processMessage(msg)
+              this.store.setInboxState(row.id, "done")
+              processed++
+            } catch (error) {
+              this.logger.error({ error, inbox: row.id }, "gagal memproses pesan, dikembalikan ke antrean")
+              this.store.setInboxState(row.id, "pending")
+            }
           }
         }
+      } finally {
+        this.processing = false
       }
-    } finally {
-      this.processing = false
+      // Kunci sudah dilepas: bila masih ada pesan pending (tiba saat drain), ulangi.
+      if (!this.store.hasPendingInbox()) break
     }
     return processed
   }
@@ -509,13 +514,40 @@ export class Runtime implements RuntimeApi {
       mediaJson: msg.media ? JSON.stringify(msg.media) : undefined,
     })
 
-    // Pesan dari diri sendiri: simpan sebagai konteks, jangan balas (cegah echo loop).
-    if (msg.fromMe) return
+    // Pesan sistem (protocol/reaction tanpa teks) tidak memicu agen.
+    if (msg.isSystem) return
 
-    const decision = this.policy.canTrigger(msg.senderId, { respondTo: account.respondTo })
-    if (decision.effect !== "allow") {
-      this.logger.debug({ sender: msg.senderId, reason: decision.reason }, "pengirim tidak diizinkan memicu agen")
-      return
+    // Gema pesan yang dikirim bot ini: cukup disimpan sebagai konteks, jangan dibalas.
+    if (msg.isEcho) return
+
+    // Pesan dari diri sendiri (diketik pemilik di ponsel) hanya diproses bila ini
+    // self-chat DAN fitur self-chat aktif untuk akun ini.
+    const isOwnerSelfChat = msg.fromMe && Boolean(msg.isSelfChat) && account.selfChat
+    if (msg.fromMe && !isOwnerSelfChat) return
+
+    // Guard pesan basi: mencegah banjir balasan atas backlog (mis. antrean offline).
+    // Tidak berlaku untuk perintah pemilik di self-chat.
+    const maxAge = this.config.replyMaxAgeSeconds
+    if (!isOwnerSelfChat && maxAge > 0) {
+      const ageSec = (Date.now() - msg.timestamp) / 1000
+      if (ageSec > maxAge) {
+        this.store.audit({
+          actor: msg.accountId,
+          action: "skip.stale",
+          detail: { chatId: msg.chatId, ageSec: Math.round(ageSec) },
+        })
+        this.logger.debug({ chat: msg.chatId, ageSec: Math.round(ageSec) }, "pesan basi: agen tidak dijalankan")
+        return
+      }
+    }
+
+    // Otoritas: self-chat pemilik selalu diizinkan; selain itu tunduk policy.
+    if (!isOwnerSelfChat) {
+      const decision = this.policy.canTrigger(msg.senderId, { respondTo: account.respondTo })
+      if (decision.effect !== "allow") {
+        this.logger.debug({ sender: msg.senderId, reason: decision.reason }, "pengirim tidak diizinkan memicu agen")
+        return
+      }
     }
 
     // Jam tenang: agen tidak membalas otomatis.

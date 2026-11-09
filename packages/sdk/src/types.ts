@@ -369,4 +369,14 @@ export interface InboundMessage {
   media?: { kind: string; mime?: string; localPath?: string; caption?: string }
   mentions?: string[]
   quotedId?: string
+  /** Pesan media yang bersifat sekali-lihat (view-once). */
+  isViewOnce?: boolean
+  /** Pesan dari chat sementara (disappearing). */
+  isEphemeral?: boolean
+  /** Pesan ini dikirim oleh bot (gema) — bukan diketik pemilik di ponsel. */
+  isEcho?: boolean
+  /** Pesan berada di self-chat akun ini (pemilik mengirim ke nomornya sendiri). */
+  isSelfChat?: boolean
+  /** Pesan sistem (mis. protocolMessage) — bukan percakapan biasa. */
+  isSystem?: boolean
 }

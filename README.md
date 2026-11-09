@@ -196,6 +196,8 @@ ibrax memory verify                 # jumlah + sidik jari (deteksi perubahan)
 - **Otonomi berjenjang** — `readonly` → `suggest` → `auto` → `autonomous`.
 - **Risiko per tool** — `low`/`medium`/`high`; `high` selalu butuh persetujuan.
 - **Rate limit** — `IBRA_RATE_PER_SENDER`, `IBRA_RATE_PER_CHAT` (per menit, 0 = mati).
+- **Guard pesan basi** — `IBRA_REPLY_MAX_AGE` (detik): pesan yang lebih tua tidak dibalas,
+  sehingga backlog saat offline tidak memicu banjir balasan.
 - **Jam tenang** — `IBRA_QUIET_HOURS` (mis. `22:00-07:00`) menahan balasan otomatis.
 - **Isolasi kanal** — konten pesan diperlakukan sebagai data, bukan instruksi.
 

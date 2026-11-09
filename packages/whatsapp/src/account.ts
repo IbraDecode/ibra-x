@@ -14,10 +14,13 @@ import {
 } from "@whiskeysockets/baileys"
 import type { InboundMessage, Logger } from "@ibrax/sdk"
 import { loadAuthState } from "./auth.ts"
-import { normalizeBaileysMessage } from "./normalize.ts"
+import { MemoryCache } from "./cache.ts"
+import { jidIdentity, normalizeBaileysMessage } from "./normalize.ts"
 
 const SEND_TIMEOUT_MS = 60_000
 const RESTART_CODE = 515
+/** Batas jumlah ID pesan terkirim yang dilacak (anti-loop). */
+const SENT_IDS_MAX = 5000
 
 export type AccountStatus = "idle" | "connecting" | "open" | "close"
 
@@ -52,6 +55,17 @@ export class AccountRuntime {
   private stopped = false
   private reconnectAttempts = 0
   private readonly pinoLogger: PinoLogger
+  /** ID pesan yang dikirim bot ini — gema dengan ID ini bukan pesan pemilik. */
+  private readonly sentIds = new Set<string>()
+  private readonly sentOrder: string[] = []
+  /** Identitas milik akun (nomor PN + LID) untuk mendeteksi self-chat. */
+  private readonly ownIds = new Set<string>()
+  /** Cache metadata grup (5 menit) — mempercepat kirim ke grup. */
+  private readonly groupCache = new MemoryCache(5 * 60_000)
+  /** Cache penghitung retry dekripsi — mencegah loop "Bad MAC". */
+  private readonly retryCache = new MemoryCache(20 * 60_000)
+  /** Nomor akun (digit) setelah terhubung. */
+  private ownNumber?: string
 
   constructor(private readonly opts: AccountRuntimeOptions) {
     this.pinoLogger = pino({ level: opts.logLevel ?? "warn" })
@@ -83,6 +97,19 @@ export class AccountRuntime {
       markOnlineOnConnect: false,
       syncFullHistory: false,
       getMessage: async () => undefined,
+      msgRetryCounterCache: this.retryCache as never,
+      maxMsgRetryCount: 5,
+      cachedGroupMetadata: async (jid: string) => {
+        const cached = this.groupCache.get(jid)
+        if (cached) return cached as never
+        try {
+          const md = await this.sock?.groupMetadata(jid)
+          if (md) this.groupCache.set(jid, md)
+          return md as never
+        } catch {
+          return undefined
+        }
+      },
     })
     this.sock = sock
     this.setStatus("connecting")
@@ -92,6 +119,24 @@ export class AccountRuntime {
     })
 
     sock.ev.on("connection.update", (update) => this.handleConnectionUpdate(update))
+
+    // Invalidasi cache metadata grup saat ada perubahan (akan diambil segar saat dipakai).
+    sock.ev.on("groups.update", (events) => {
+      for (const ev of events ?? []) {
+        if (ev?.id) this.groupCache.del(ev.id)
+      }
+    })
+    sock.ev.on("group-participants.update", (ev) => {
+      if (ev?.id) this.groupCache.del(ev.id)
+    })
+    // Pelajari LID akun sendiri (untuk deteksi self-chat).
+    sock.ev.on("lid-mapping.update" as never, (mapping: { lid?: string; pn?: string }) => {
+      if (!mapping) return
+      const pn = mapping.pn ? jidIdentity(mapping.pn) : undefined
+      if (pn && this.ownNumber && pn === this.ownNumber && mapping.lid) {
+        this.ownIds.add(jidIdentity(mapping.lid))
+      }
+    })
 
     sock.ev.on("messages.upsert", ({ messages, type }) => {
       if (type !== "notify" && type !== "append") return
@@ -106,8 +151,12 @@ export class AccountRuntime {
     const normalized = normalizeBaileysMessage(
       this.id,
       raw as unknown as Parameters<typeof normalizeBaileysMessage>[1],
+      { ownIds: this.ownIds },
     )
     if (!normalized) return
+
+    // Tandai gema pesan yang dikirim bot ini (bukan diketik pemilik di ponsel).
+    if (normalized.fromMe) normalized.isEcho = this.sentIds.has(normalized.id)
 
     if (normalized.media && !normalized.media.localPath) {
       try {
@@ -123,6 +172,30 @@ export class AccountRuntime {
     } catch (error) {
       this.opts.logger.error({ error, account: this.id }, "onInbound gagal")
     }
+  }
+
+  /** Mencatat ID pesan yang dikirim bot ini (dibatasi jumlahnya). */
+  private markSent(id: string | undefined | null): void {
+    if (!id || this.sentIds.has(id)) return
+    this.sentIds.add(id)
+    this.sentOrder.push(id)
+    while (this.sentOrder.length > SENT_IDS_MAX) {
+      const old = this.sentOrder.shift()
+      if (old) this.sentIds.delete(old)
+    }
+  }
+
+  /** Menyimpan identitas akun (PN/LID) untuk deteksi self-chat. */
+  private captureOwnIdentity(): void {
+    const me = this.sock?.user
+    if (!me) return
+    if (me.id) {
+      this.ownIds.add(jidIdentity(me.id))
+      const digits = jidIdentity(me.id).replace(/[^0-9]/g, "")
+      if (digits) this.ownNumber = digits
+    }
+    const lid = (me as unknown as { lid?: string }).lid
+    if (lid) this.ownIds.add(jidIdentity(lid))
   }
 
   private async downloadMedia(raw: WAMessage, id: string, mime?: string): Promise<string | undefined> {
@@ -157,8 +230,9 @@ export class AccountRuntime {
 
     if (connection === "open") {
       this.reconnectAttempts = 0
+      this.captureOwnIdentity()
       this.setStatus("open")
-      this.opts.logger.info({ account: this.id }, "WhatsApp terhubung")
+      this.opts.logger.info({ account: this.id, own: this.ownNumber }, "WhatsApp terhubung")
       return
     }
 
@@ -240,6 +314,7 @@ export class AccountRuntime {
     )
 
     const messageId = (sent as WAMessage | undefined)?.key?.id ?? ""
+    this.markSent(messageId)
     return { messageId }
   }
 
@@ -263,25 +338,28 @@ export class AccountRuntime {
 
   async react(chatId: string, messageId: string, emoji: string, opts?: { fromMe?: boolean }): Promise<void> {
     if (!this.sock) return
-    await this.enqueueSend(() =>
+    const sent = await this.enqueueSend(() =>
       this.sock!.sendMessage(chatId, {
         react: { text: emoji, key: { remoteJid: chatId, id: messageId, fromMe: opts?.fromMe ?? false } },
       }),
     )
+    this.markSent((sent as WAMessage | undefined)?.key?.id)
   }
 
   async editMessage(chatId: string, messageId: string, text: string): Promise<void> {
     if (!this.sock) return
-    await this.enqueueSend(() =>
+    const sent = await this.enqueueSend(() =>
       this.sock!.sendMessage(chatId, { text, edit: { remoteJid: chatId, id: messageId, fromMe: true } }),
     )
+    this.markSent((sent as WAMessage | undefined)?.key?.id)
   }
 
   async deleteMessage(chatId: string, messageId: string): Promise<void> {
     if (!this.sock) return
-    await this.enqueueSend(() =>
+    const sent = await this.enqueueSend(() =>
       this.sock!.sendMessage(chatId, { delete: { remoteJid: chatId, id: messageId, fromMe: true } }),
     )
+    this.markSent((sent as WAMessage | undefined)?.key?.id)
   }
 
   async setPresence(chatId: string, state: "composing" | "paused" | "available"): Promise<void> {
@@ -348,7 +426,7 @@ export class AccountRuntime {
     location: { latitude: number; longitude: number; name?: string; address?: string },
   ): Promise<void> {
     if (!this.sock) return
-    await this.enqueueSend(() =>
+    const sent = await this.enqueueSend(() =>
       this.sock!.sendMessage(chatId, {
         location: {
           degreesLatitude: location.latitude,
@@ -358,6 +436,7 @@ export class AccountRuntime {
         },
       }),
     )
+    this.markSent((sent as WAMessage | undefined)?.key?.id)
   }
 
   async sendPoll(
@@ -365,11 +444,12 @@ export class AccountRuntime {
     poll: { name: string; options: string[]; selectableCount?: number },
   ): Promise<void> {
     if (!this.sock) return
-    await this.enqueueSend(() =>
+    const sent = await this.enqueueSend(() =>
       this.sock!.sendMessage(chatId, {
         poll: { name: poll.name, values: poll.options, selectableCount: poll.selectableCount ?? 1 },
       }),
     )
+    this.markSent((sent as WAMessage | undefined)?.key?.id)
   }
 
   async profilePictureUrl(chatId: string): Promise<string | undefined> {
@@ -405,11 +485,12 @@ export class AccountRuntime {
 
   async sendContact(chatId: string, contact: { displayName: string; vcard: string }): Promise<void> {
     if (!this.sock) return
-    await this.enqueueSend(() =>
+    const sent = await this.enqueueSend(() =>
       this.sock!.sendMessage(chatId, {
         contacts: { displayName: contact.displayName, contacts: [{ vcard: contact.vcard }] },
       }),
     )
+    this.markSent((sent as WAMessage | undefined)?.key?.id)
   }
 
   stop(): void {

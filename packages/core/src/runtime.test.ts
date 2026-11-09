@@ -143,7 +143,7 @@ test("hook onInbound melakukan short-circuit sebelum memanggil LLM", async () =>
     chatKind: "dm",
     senderId: "62811@s.whatsapp.net",
     fromMe: false,
-    timestamp: 1,
+    timestamp: Date.now(),
     text: "halo",
   })
 
@@ -171,12 +171,146 @@ test("handoff menahan balasan otomatis", async () => {
     chatKind: "dm",
     senderId: "62811@s.whatsapp.net",
     fromMe: false,
-    timestamp: 1,
+    timestamp: Date.now(),
     text: "halo",
   })
 
   assert.equal(provider.calls, 0, "agen tidak dijalankan saat handoff aktif")
   assert.equal(transport.sent.length, 0, "tidak ada balasan otomatis")
   assert.ok(runtime.handoff.isActive("c1"))
+  store.close()
+})
+
+function buildWithTransport(provider: Provider, transport: FakeTransport, configOverrides: Record<string, unknown> = {}) {
+  const store = new Store(":memory:")
+  const config = ConfigSchema.parse(configOverrides)
+  const runtime = new Runtime({
+    config,
+    store,
+    bus: new EventBus(),
+    logger: noopLogger,
+    provider,
+    registry: new SkillRegistry(),
+    transport,
+  })
+  return { runtime, store }
+}
+
+test("gema pesan bot sendiri (isEcho) tidak memicu agen (anti-loop)", async () => {
+  const provider = new ScriptedProvider([{ message: { role: "assistant", content: "x" }, usage: {} }])
+  const transport = new FakeTransport()
+  const { runtime, store } = buildWithTransport(provider, transport, { autonomy: "auto", respondTo: "all" })
+  await runtime.handleInbound({
+    id: "m1",
+    accountId: "a1",
+    chatId: "c1",
+    chatKind: "dm",
+    senderId: "a1",
+    fromMe: true,
+    isEcho: true,
+    timestamp: Date.now(),
+    text: "balasan bot",
+  })
+  assert.equal(provider.calls, 0, "agen tidak dijalankan untuk gema sendiri")
+  assert.equal(transport.sent.length, 0)
+  store.close()
+})
+
+test("self-chat aktif: pesan pemilik ke nomornya sendiri memicu agen", async () => {
+  const provider = new ScriptedProvider([{ message: { role: "assistant", content: "siap" }, usage: {} }])
+  const transport = new FakeTransport()
+  const { runtime, store } = buildWithTransport(provider, transport, {
+    autonomy: "auto",
+    accounts: [{ id: "self", role: "assistant", selfChat: true }],
+  })
+  await runtime.handleInbound({
+    id: "m1",
+    accountId: "self",
+    chatId: "62811@s.whatsapp.net",
+    chatKind: "dm",
+    senderId: "62811@s.whatsapp.net",
+    fromMe: true,
+    isSelfChat: true,
+    timestamp: Date.now(),
+    text: "catat: beli susu",
+  })
+  assert.equal(transport.sent.length, 1)
+  assert.equal(transport.sent[0]!.text, "siap")
+  store.close()
+})
+
+test("self-chat nonaktif: pesan fromMe tidak memicu agen", async () => {
+  const provider = new ScriptedProvider([{ message: { role: "assistant", content: "x" }, usage: {} }])
+  const transport = new FakeTransport()
+  const { runtime, store } = buildWithTransport(provider, transport, {
+    autonomy: "auto",
+    accounts: [{ id: "self", role: "assistant" }],
+  })
+  await runtime.handleInbound({
+    id: "m1",
+    accountId: "self",
+    chatId: "62811@s.whatsapp.net",
+    chatKind: "dm",
+    senderId: "62811@s.whatsapp.net",
+    fromMe: true,
+    isSelfChat: true,
+    timestamp: Date.now(),
+    text: "halo",
+  })
+  assert.equal(transport.sent.length, 0)
+  assert.equal(provider.calls, 0)
+  store.close()
+})
+
+test("guard pesan basi: pesan lama dilewati, pesan baru dibalas", async () => {
+  const provider = new ScriptedProvider([{ message: { role: "assistant", content: "balas baru" }, usage: {} }])
+  const transport = new FakeTransport()
+  const { runtime, store } = buildWithTransport(provider, transport, {
+    autonomy: "auto",
+    ownerNumbers: ["62811"],
+    replyMaxAgeSeconds: 300,
+  })
+  await runtime.handleInbound({
+    id: "old",
+    accountId: "a1",
+    chatId: "c1",
+    chatKind: "dm",
+    senderId: "62811@s.whatsapp.net",
+    fromMe: false,
+    timestamp: Date.now() - 3_600_000,
+    text: "pesan lama",
+  })
+  assert.equal(transport.sent.length, 0, "pesan basi tidak dibalas")
+  await runtime.handleInbound({
+    id: "new",
+    accountId: "a1",
+    chatId: "c1",
+    chatKind: "dm",
+    senderId: "62811@s.whatsapp.net",
+    fromMe: false,
+    timestamp: Date.now(),
+    text: "pesan baru",
+  })
+  assert.equal(transport.sent.length, 1)
+  assert.equal(transport.sent[0]!.text, "balas baru")
+  store.close()
+})
+
+test("pesan sistem (protocolMessage) tidak memicu agen", async () => {
+  const provider = new ScriptedProvider([{ message: { role: "assistant", content: "x" }, usage: {} }])
+  const transport = new FakeTransport()
+  const { runtime, store } = buildWithTransport(provider, transport, { autonomy: "auto", respondTo: "all" })
+  await runtime.handleInbound({
+    id: "p1",
+    accountId: "a1",
+    chatId: "c1",
+    chatKind: "dm",
+    senderId: "62899@s.whatsapp.net",
+    fromMe: false,
+    isSystem: true,
+    timestamp: Date.now(),
+  })
+  assert.equal(transport.sent.length, 0)
+  assert.equal(provider.calls, 0)
   store.close()
 })

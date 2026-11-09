@@ -372,6 +372,12 @@ export class Store {
     return rows.map(mapInbox)
   }
 
+  /** Apakah masih ada pesan pending di antrean masuk. */
+  hasPendingInbox(): boolean {
+    const row = this.db.prepare(`SELECT 1 AS x FROM inbox WHERE state='pending' LIMIT 1`).get() as any
+    return Boolean(row)
+  }
+
   setInboxState(id: string, state: InboxRow["state"]): void {
     this.db.prepare("UPDATE inbox SET state=?, updated_at=? WHERE id=?").run(state, Date.now(), id)
   }
