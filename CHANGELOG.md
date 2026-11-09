@@ -4,6 +4,14 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.9.0] — 2026-11-09
+
+### Ditambahkan
+- Skill `digest`: ringkasan harian percakapan (grup/pribadi) pada jam tertentu.
+  Peringkasan didelegasikan ke subagen; hasil dikirim ke chat itu sendiri atau JID eksplisit.
+- Tool: `enable_digest`, `disable_digest`, `list_digests`.
+- Dukungan tes untuk skill (glob tes memuat `skills/*/*.test.ts`).
+
 ## [0.8.0] — 2026-11-09
 
 ### Ditambahkan

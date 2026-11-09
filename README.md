@@ -99,6 +99,7 @@ Agen dapat bertindak **proaktif** lewat job periodik yang dideklarasikan skill:
 |---|---|---|
 | `reminders` | setiap 60s | Mengirim pengingat yang jatuh tempo |
 | `scheduler` | setiap 30s | Mengirim pesan terjadwal |
+| `digest` | setiap 5 menit | Ringkasan harian percakapan (via subagen) pada jam tertentu |
 
 Skill kustom dapat menambahkan `jobs` sendiri (lihat [`docs/SKILLS.md`](docs/SKILLS.md)). State job disimpan di `SkillStore` masing-masing, sehingga scheduler tetap sederhana tanpa layanan eksternal.
 
