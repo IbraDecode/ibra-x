@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": false,
+    "baseUrl": ".",
+    "paths": {
+      "@ibrax/sdk": ["packages/sdk/src/index.ts"],
+      "@ibrax/providers": ["packages/providers/src/index.ts"],
+      "@ibrax/core": ["packages/core/src/index.ts"],
+      "@ibrax/whatsapp": ["packages/whatsapp/src/index.ts"],
+      "@ibrax/server": ["packages/server/src/index.ts"]
+    }
+  },
+  "include": ["packages/**/*.ts", "skills/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

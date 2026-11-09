@@ -1,0 +1,72 @@
+# Ibra X
+
+> Agen otonom untuk WhatsApp — membaca, mengingat, memahami, dan bertindak atas lalu lintas WhatsApp Anda. Open source, instalasi termudah, dukungan bawaan untuk banyak penyedia LLM, dengan Skills API & SDK.
+
+`ibra-x` adalah platform agen WhatsApp yang dapat di-host sendiri (self-hosted). Ia menautkan satu atau beberapa nomor WhatsApp lewat [Baileys](https://github.com/WhiskeySockets/Baileys), lalu menjalankan loop agen yang otonom: mengamati chat, mengingat konteks, memanggil *skill* (tool), dan membalas dengan kebijakan izin yang ketat.
+
+**Status: `0.1.0` — tahap awal (fondasi).** Implementasi berjalan di branch `dev`.
+
+---
+
+## Mengapa Ibra X?
+
+- **Satu agen untuk seluruh lalu lintas WhatsApp.** Bukan bot yang hanya membalas kata kunci, tetapi agen yang mengamati, mengingat, dan bertindak.
+- **Multi-nomor dengan peran.** Satu nomor untuk *membaca* (observer), satu untuk *membalas* (assistant), atau mode *hybrid*. Memori dibagi antar-nomor.
+- **Banyak penyedia LLM secara langsung.** OpenAI, Anthropic, Google, OpenRouter, Groq, Mistral, DeepSeek, xAI, Ollama lokal, dan endpoint apa pun yang kompatibel OpenAI — tanpa lapisan SDK berat.
+- **Skills API & SDK.** Tulis kemampuan Anda sendiri dalam TypeScript, atau pasang server **MCP** sebagai sumber tool.
+- **Instalasi termudah.** Tanpa build step saat self-host. `git clone && npm install && npm run init`.
+- **Aman secara desain.** Allowlist, peran per akun, klasifikasi risiko, persetujuan untuk aksi berdampak, dan isolasi konten tak tepercaya.
+
+---
+
+## Mulai Cepat
+
+```bash
+git clone https://github.com/IbraDecode/ibra-x.git
+cd ibra-x
+npm install
+npm run init      # wizard: pilih provider, isi API key, tautkan nomor WhatsApp
+npm run start     # jalankan agen
+```
+
+Atau via Docker:
+
+```bash
+cp .env.example .env
+docker compose up -d
+docker compose logs -f
+```
+
+---
+
+## Konsep Inti
+
+| Konsep | Arti |
+|---|---|
+| **Account** | Satu nomor WhatsApp (sesi Baileys) dengan **peran**: `observer`, `assistant`, atau `hybrid`. |
+| **Agent** | Loop pengambilan keputusan: model + skill + memori + anggaran + izin. |
+| **Skill** | Plugin yang mengekspos tool (dan prompt/command/hook). Ditulis dengan `@ibrax/sdk`. |
+| **Provider** | Adaptor LLM. Semua penyedia OpenAI-compatible ditangani satu engine. |
+| **Memory** | Memori jangka panjang per kontak/chat (SQLite + FTS5), plus ringkasan sesi. |
+| **Policy** | Aturan izin: siapa boleh memicu agen, aksi apa yang butuh persetujuan. |
+
+---
+
+## Dokumentasi
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — arsitektur, keputusan desain, dan alur.
+- [`docs/SKILLS.md`](docs/SKILLS.md) — cara menulis skill (menyusul).
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — alur kontribusi dan strategi branch.
+
+---
+
+## Branch
+
+- `main` — stabil, rilis.
+- `dev` — integrasi, tempat pengembangan aktif. **PR mengarah ke `dev`.**
+
+---
+
+## Lisensi
+
+MIT © IbraDecode

@@ -1,0 +1,33 @@
+{
+  "name": "ibra-x",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agen otonom untuk WhatsApp — membaca, mengingat, memahami, dan bertindak. Multi-nomor, multi-provider LLM, Skills API & SDK.",
+  "license": "MIT",
+  "author": "IbraDecode <ibradecode@gmail.com>",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "bin": {
+    "ibrax": "packages/cli/bin/ibrax.mjs"
+  },
+  "scripts": {
+    "init": "tsx packages/cli/src/index.ts init",
+    "start": "tsx packages/cli/src/index.ts start",
+    "dev": "tsx watch packages/cli/src/index.ts start",
+    "cli": "tsx packages/cli/src/index.ts",
+    "server": "tsx packages/server/src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test \"packages/**/*.test.ts\"",
+    "doctor": "tsx packages/cli/src/index.ts doctor"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
