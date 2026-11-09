@@ -108,7 +108,7 @@ Batas: `maxSteps`, `maxTokensPerTurn`, dan anggaran biaya opsional. Saat batas t
 
 Tiga lapis:
 
-1. **Sesi (jangka pendek).** Riwayat pesan per chat; dikompresi saat mendekati batas konteks (ringkasan + ekor verbatim).
+1. **Sesi (jangka pendek).** Riwayat pesan per chat; dikompresi saat mendekati batas konteks (ringkasan + ekor verbatim). Kompaksi otomatis (`compactAfterMessages`) meringkas riwayat lama memakai model menjadi catatan memori sesi.
 2. **Memori fakta (jangka panjang).** Tabel `memory` dengan ruang lingkup (`global`/`contact`/`chat`), teks, tag, dan pencarian **FTS5**. Ditulis oleh agen lewat skill `memory`, atau otomatis setelah turn bermakna.
 3. **Profil kontak.** Nama, preferensi, gaya bahasa, fakta penting.
 
@@ -133,6 +133,9 @@ Prinsip: memori bersifat **eksplisit dan dapat diaudit**. Setiap tulisan memori 
 Mengadopsi pelajaran dari protokol WhatsApp (lihat riset internal):
 
 - **Antrean durable + idempotensi.** Pesan tidak hilang saat crash; dedup by id.
+- **Pengiriman ulang (`getMessage`).** Proto pesan mentah disimpan (`raw_messages`), sehingga
+  Baileys dapat mengirim ulang saat penerima meminta retry (mencegah "Menunggu pesan ini")
+  dan mendekripsi suara polling.
 - **Serialisasi kirim.** Semua `sendMessage` per socket diserialisasi dalam satu antrean (kirim paralel dapat menyebabkan salah-antar). Ada timeout per panggilan.
 - **Tangga pemulihan.** `retry` (backoff + jitter) → `rebuild` (buang state lokal, muat ringkasan kanonik) → `escalate` (park + tanya manusia).
 - **Tugas terparkir.** Tugas yang butuh izin/manusia di-park (`INPUT_REQUIRED`) dan dilanjutkan otomatis saat izin diberikan.

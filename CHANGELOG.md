@@ -4,6 +4,22 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.23.0] — 2026-11-09
+
+### Ditambahkan
+- **`getMessage` + penyimpanan proto mentah**: proto pesan mentah disimpan di tabel
+  `raw_messages` (dipangkas otomatis). Ini mengaktifkan **pengiriman ulang saat penerima
+  minta retry** (menghindari "Menunggu pesan ini") dan **dekripsi suara polling**.
+- **`syncFullHistory` per akun** (`accounts[].syncFullHistory`): sinkronkan riwayat penuh
+  saat konek — cocok untuk akun `observer` yang mengarsipkan percakapan.
+- **Kompaksi sesi berbasis model**: `compactAfterMessages` (default `60`) meringkas riwayat
+  lama menjadi catatan memori sesi secara otomatis (best-effort, di latar belakang) agar
+  konteks tetap ringkas pada chat panjang.
+
+### Diperbaiki
+- **Rate limiter**: `check()`/`record()` — memeriksa kuota tanpa mengonsumsi token pembatas
+  lain, sehingga penolakan salah satu pembatas (pengirim/chat) tidak membuang kuota yang lain.
+
 ## [0.22.0] — 2026-11-09
 
 ### Ditambahkan

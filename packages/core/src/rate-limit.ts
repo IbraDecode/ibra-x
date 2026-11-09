@@ -17,15 +17,29 @@ export class SlidingWindowLimiter {
   /** Mengembalikan true bila aksi diizinkan (dan mencatatnya). */
   allow(key: string): boolean {
     if (this.max <= 0) return true
+    if (!this.check(key)) return false
+    this.record(key)
+    return true
+  }
+
+  /**
+   * Memeriksa kuota TANPA mencatat. Berguna saat beberapa pembatas digabung:
+   * jika salah satu gagal, token pembatas lain tidak ikut terbuang.
+   */
+  check(key: string): boolean {
+    if (this.max <= 0) return true
     const t = this.now()
     const recent = (this.hits.get(key) ?? []).filter((ts) => t - ts < this.windowMs)
-    if (recent.length >= this.max) {
-      this.hits.set(key, recent)
-      return false
-    }
+    return recent.length < this.max
+  }
+
+  /** Mencatat satu aksi (panggil setelah `check` lolos). */
+  record(key: string): void {
+    if (this.max <= 0) return
+    const t = this.now()
+    const recent = (this.hits.get(key) ?? []).filter((ts) => t - ts < this.windowMs)
     recent.push(t)
     this.hits.set(key, recent)
-    return true
   }
 
   /** Menghapus riwayat satu kunci (mis. saat pengguna diblokir). */

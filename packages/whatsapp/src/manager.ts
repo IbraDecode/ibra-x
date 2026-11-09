@@ -11,6 +11,10 @@ export interface WhatsAppManagerOptions {
   onQr?: (accountId: string, qr: string) => void
   onStatus?: (accountId: string, status: AccountStatus, reason?: string) => void
   printQr?: boolean
+  /** Ambil proto pesan mentah berdasarkan id (getMessage). */
+  getRawMessage?: (id: string) => unknown
+  /** Simpan proto pesan mentah saat pesan masuk. */
+  onRawMessage?: (accountId: string, id: string, chatId: string, raw: unknown) => void
 }
 
 /**
@@ -53,6 +57,7 @@ export class WhatsAppManager implements Transport {
     const existing = this.runtimes.get(accountId)
     if (existing) return existing
 
+    const account = this.opts.config.accounts.find((a) => a.id === accountId)
     const runtime = new AccountRuntime({
       accountId,
       dataDir: this.opts.dataDir,
@@ -62,6 +67,9 @@ export class WhatsAppManager implements Transport {
       onStatus: (status, reason) => this.opts.onStatus?.(accountId, status, reason),
       printQr: this.opts.printQr,
       logLevel: this.opts.config.logLevel === "debug" ? "debug" : "warn",
+      syncFullHistory: account?.syncFullHistory ?? false,
+      getRawMessage: this.opts.getRawMessage,
+      onRawMessage: this.opts.onRawMessage,
     })
     this.runtimes.set(accountId, runtime)
     await runtime.start()

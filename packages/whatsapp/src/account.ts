@@ -35,6 +35,12 @@ export interface AccountRuntimeOptions {
   /** Cetak QR ke terminal otomatis (default false). */
   printQr?: boolean
   logLevel?: string
+  /** Sinkronkan riwayat penuh saat konek (cocok untuk akun observer). */
+  syncFullHistory?: boolean
+  /** Ambil proto pesan mentah berdasarkan id (untuk getMessage: retry & poll). */
+  getRawMessage?: (id: string) => unknown
+  /** Simpan proto pesan mentah saat pesan masuk. */
+  onRawMessage?: (accountId: string, id: string, chatId: string, raw: unknown) => void
 }
 
 /**
@@ -95,8 +101,13 @@ export class AccountRuntime {
       logger: this.pinoLogger,
       browser: this.opts.browser ?? ["Ibra X", "Chrome", "1.0.0"],
       markOnlineOnConnect: false,
-      syncFullHistory: false,
-      getMessage: async () => undefined,
+      syncFullHistory: this.opts.syncFullHistory ?? false,
+      // getMessage memungkinkan Baileys mengirim ulang pesan saat penerima minta
+      // retry (menghindari "Menunggu pesan ini") dan mendekripsi suara polling.
+      getMessage: async (key: { id?: string | null }) => {
+        const raw = key?.id ? this.opts.getRawMessage?.(key.id) : undefined
+        return raw as never
+      },
       msgRetryCounterCache: this.retryCache as never,
       maxMsgRetryCount: 5,
       cachedGroupMetadata: async (jid: string) => {
@@ -157,6 +168,18 @@ export class AccountRuntime {
 
     // Tandai gema pesan yang dikirim bot ini (bukan diketik pemilik di ponsel).
     if (normalized.fromMe) normalized.isEcho = this.sentIds.has(normalized.id)
+
+    // Simpan proto mentah untuk getMessage (retry dekripsi & dekripsi polling).
+    if (this.opts.onRawMessage) {
+      const rawProto = (raw as { message?: unknown }).message
+      if (rawProto) {
+        try {
+          this.opts.onRawMessage(this.id, normalized.id, normalized.chatId, rawProto)
+        } catch (error) {
+          this.opts.logger.debug({ error, id: normalized.id }, "gagal menyimpan proto mentah")
+        }
+      }
+    }
 
     if (normalized.media && !normalized.media.localPath) {
       try {

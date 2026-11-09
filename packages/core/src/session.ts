@@ -1,17 +1,20 @@
-import type { ChatMessage, Skill } from "@ibrax/sdk"
+import type { ChatMessage, Provider, Skill } from "@ibrax/sdk"
 import type { IbraConfig } from "./config.ts"
 import type { Store } from "./db.ts"
 
 const DEFAULT_HISTORY_LIMIT = 40
+/** Pesan terbaru yang dipertahankan verbatim saat kompaksi. */
+const COMPACT_KEEP = 40
 
 /**
  * Mengelola konteks percakapan per chat: membangun daftar pesan untuk model
- * dari ringkasan sesi + riwayat terakhir, dan menyediakan peringkasan.
+ * dari ringkasan sesi + riwayat terakhir, dan menyediakan peringkasan (kompaksi).
  */
 export class SessionManager {
   constructor(
     private readonly store: Store,
     private readonly config: IbraConfig,
+    private readonly provider?: Provider,
   ) {}
 
   sessionId(accountId: string, chatId: string): string {
@@ -77,10 +80,57 @@ export class SessionManager {
   }
 
   /**
-   * Peringkasan sederhana (tanpa model): menyimpan ringkasan eksplisit yang
-   * diberikan. Peringkasan berbasis LLM akan ditambahkan pada fase berikutnya.
+   * Menyimpan ringkasan eksplisit (tanpa model). Berguna untuk hook/kustom.
    */
   compact(accountId: string, chatId: string, explicitSummary?: string): void {
     if (explicitSummary) this.setSummary(accountId, chatId, explicitSummary)
+  }
+
+  /**
+   * Kompaksi otomatis: bila cukup banyak pesan baru terkumpul, ringkas riwayat
+   * lama menjadi catatan memori sesi (memakai model) agar konteks tetap ringkas.
+   * Best-effort: kegagalan diabaikan tanpa mengganggu alur.
+   */
+  async maybeCompact(accountId: string, chatId: string): Promise<void> {
+    const threshold = this.config.compactAfterMessages
+    if (threshold <= 0 || !this.provider) return
+
+    const sid = this.sessionId(accountId, chatId)
+    const history = this.store.getHistory(chatId, 500)
+    const lastCount = this.store.kvGet<number>(`compact:${sid}`) ?? 0
+    if (history.length - lastCount < threshold) return
+
+    const older = history.slice(0, Math.max(0, history.length - COMPACT_KEEP)).filter((m) => m.text)
+    if (older.length < 5) return
+
+    const prev = this.store.getSessionSummary(sid)
+    const transcript = older
+      .map((m) => `${m.fromMe ? "Agen" : "Pengguna"}: ${m.text}`)
+      .join("\n")
+      .slice(-12_000)
+
+    try {
+      const res = await this.provider.complete({
+        model: this.config.model,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Ringkas percakapan WhatsApp berikut menjadi catatan memori ringkas (maks 6 kalimat, Bahasa Indonesia). " +
+              "Soroti fakta penting, permintaan, keputusan, dan preferensi pengguna. Jangan mengarang.",
+          },
+          {
+            role: "user",
+            content: `${prev ? `Ringkasan sebelumnya:\n${prev}\n\n` : ""}Percakapan:\n${transcript}`,
+          },
+        ],
+        maxTokens: 400,
+      })
+      const summary = (res.message.content ?? "").trim()
+      if (summary) this.setSummary(accountId, chatId, summary)
+      this.store.kvSet(`compact:${sid}`, history.length)
+    } catch {
+      // Best-effort: kompaksi gagal tidak boleh mengganggu balasan.
+    }
   }
 }

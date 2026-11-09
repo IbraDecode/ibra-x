@@ -25,6 +25,14 @@ test("max 0 berarti tanpa batas", () => {
   for (let i = 0; i < 100; i++) assert.equal(limiter.allow("a"), true)
 })
 
+test("check tidak mengonsumsi token; record mencatat", () => {
+  const limiter = new SlidingWindowLimiter(60_000, 1, () => 0)
+  assert.equal(limiter.check("a"), true)
+  assert.equal(limiter.check("a"), true, "check berulang tidak menghabiskan kuota")
+  limiter.record("a")
+  assert.equal(limiter.check("a"), false, "setelah record, kuota habis")
+})
+
 test("inQuietHours: rentang siang", () => {
   const range = { enabled: true, from: "09:00", to: "17:00" }
   assert.equal(inQuietHours(range, new Date(2026, 0, 1, 8, 59)), false)

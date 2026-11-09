@@ -98,6 +98,9 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
       bus.emit("account.status", { accountId, status, reason })
     },
     printQr: opts.printQr,
+    getRawMessage: (id: string) => store.getRawMessage(id),
+    onRawMessage: (accountId: string, id: string, chatId: string, raw: unknown) =>
+      store.setRawMessage(id, accountId, chatId, raw),
   })
 
   // Transkripsi audio (opsional) memakai endpoint penyedia aktif.

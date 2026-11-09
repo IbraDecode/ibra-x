@@ -334,3 +334,42 @@ test("store.getLastMessage mengembalikan pesan terbaru sebuah chat", () => {
   assert.equal(store.getLastMessage("tidak-ada"), undefined)
   store.close()
 })
+
+test("store menyimpan & mengambil proto pesan mentah (getMessage)", () => {
+  const store = new Store(":memory:")
+  store.setRawMessage("m1", "a1", "c1", { conversation: "halo" })
+  assert.deepEqual(store.getRawMessage("m1"), { conversation: "halo" })
+  assert.equal(store.getRawMessage("tidak-ada"), undefined)
+  for (let i = 0; i < 10; i++) store.setRawMessage(`x${i}`, "a1", "c1", { i })
+  const removed = store.pruneRawMessages(3)
+  assert.ok(removed >= 1, "prune membuang baris tertua")
+  store.close()
+})
+
+test("kompaksi sesi memakai model dan menyimpan ringkasan", async () => {
+  const provider = new ScriptedProvider([{ message: { role: "assistant", content: "ringkasan sesi" }, usage: {} }])
+  const store = new Store(":memory:")
+  const config = ConfigSchema.parse({ autonomy: "auto", compactAfterMessages: 5 })
+  const runtime = new Runtime({ config, store, bus: new EventBus(), logger: noopLogger, provider, registry: new SkillRegistry() })
+  for (let i = 0; i < 60; i++) {
+    store.insertMessage({
+      id: `h${i}`,
+      accountId: "a1",
+      chatId: "c1",
+      senderId: "s",
+      fromMe: i % 2 === 0,
+      text: `pesan ${i}`,
+      timestamp: 1000 + i,
+    })
+  }
+  await runtime.session.maybeCompact("a1", "c1")
+  assert.equal(store.getSessionSummary("a1:c1"), "ringkasan sesi")
+  store.close()
+})
+
+test("skema akun menerima syncFullHistory dan selfChat", () => {
+  const config = ConfigSchema.parse({ accounts: [{ id: "observer", role: "observer", syncFullHistory: true }] })
+  assert.equal(config.accounts[0]!.syncFullHistory, true)
+  assert.equal(config.accounts[0]!.selfChat, false)
+  assert.equal(ConfigSchema.parse({}).replyMaxAgeSeconds, 300)
+})

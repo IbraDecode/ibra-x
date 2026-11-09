@@ -295,7 +295,7 @@ export class Runtime implements RuntimeApi {
     this.bus = opts.bus
     this.logger = opts.logger
     this.policy = new Policy(opts.config)
-    this.session = new SessionManager(opts.store, opts.config)
+    this.session = new SessionManager(opts.store, opts.config, opts.provider)
     this.memory = new MemoryService(opts.store, opts.bus)
     this.registry = opts.registry
     this.transport = opts.transport
@@ -333,6 +333,7 @@ export class Runtime implements RuntimeApi {
         respondTo: "allowlist",
         mentionOnly: false,
         selfChat: false,
+        syncFullHistory: false,
       }
     )
   }
@@ -566,8 +567,11 @@ export class Runtime implements RuntimeApi {
       return
     }
 
-    // Batas laju per pengirim dan per chat.
-    if (!this.senderLimiter.allow(msg.senderId) || !this.chatLimiter.allow(msg.chatId)) {
+    // Batas laju per pengirim dan per chat (check dulu agar token tidak terbuang
+    // bila salah satu pembatas menolak).
+    const senderOk = this.senderLimiter.check(msg.senderId)
+    const chatOk = this.chatLimiter.check(msg.chatId)
+    if (!senderOk || !chatOk) {
       this.store.audit({
         actor: msg.accountId,
         action: "skip.rateLimit",
@@ -576,6 +580,8 @@ export class Runtime implements RuntimeApi {
       this.logger.warn({ chat: msg.chatId, sender: msg.senderId }, "batas laju terlampaui: pesan dilewati")
       return
     }
+    this.senderLimiter.record(msg.senderId)
+    this.chatLimiter.record(msg.chatId)
 
     if (account.mentionOnly && msg.chatKind === "group") {
       const targets = new Set([...this.config.allowlist, ...this.config.ownerNumbers].map((s) => s.replace(/[^0-9]/g, "")))
@@ -608,6 +614,9 @@ export class Runtime implements RuntimeApi {
     })
 
     await this.deliverReply(msg, account, result)
+
+    // Kompaksi ringan di latar belakang (best-effort, tidak memblokir balasan).
+    void this.session.maybeCompact(msg.accountId, msg.chatId).catch(() => {})
   }
 
   private async deliverReply(msg: InboundMessage, account: AccountConfig, result: AgentRunResult): Promise<void> {

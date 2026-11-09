@@ -13,6 +13,8 @@ export const AccountSchema = z.object({
   mentionOnly: z.boolean().default(false),
   /** Izinkan agen merespons di self-chat (pemilik mengirim ke nomornya sendiri). */
   selfChat: z.boolean().default(false),
+  /** Sinkronkan riwayat penuh saat konek (berat; cocok untuk akun observer). */
+  syncFullHistory: z.boolean().default(false),
   /** Model khusus untuk akun ini (menimpa default). */
   model: z.string().optional(),
 })
@@ -61,6 +63,8 @@ export const ConfigSchema = z.object({
   autonomy: z.enum(["readonly", "suggest", "auto", "autonomous"]).default("suggest"),
   /** Usia maksimum pesan (detik) agar masih dibalas. 0 = tanpa batas. Mencegah banjir balasan atas backlog offline. */
   replyMaxAgeSeconds: z.number().int().min(0).default(300),
+  /** Kompaksi sesi: jumlah pesan baru sebelum ringkasan dibuat ulang (0 = nonaktif). */
+  compactAfterMessages: z.number().int().min(0).default(60),
   allowlist: z.array(z.string()).default([]),
   ownerNumbers: z.array(z.string()).default([]),
   apiToken: z.string().default(""),

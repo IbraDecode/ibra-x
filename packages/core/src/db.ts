@@ -155,6 +155,16 @@ export class Store {
         action TEXT NOT NULL,
         detail TEXT
       );
+
+      -- Pesan proto mentah (untuk getMessage: retry dekripsi & dekripsi polling).
+      CREATE TABLE IF NOT EXISTS raw_messages (
+        id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        chat_id TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_raw_messages_created ON raw_messages(created_at);
     `)
 
     // Migrasi ringan: tambahkan kolom baru bila belum ada (untuk DB lama).
@@ -237,6 +247,38 @@ export class Store {
       )
       .get(chatId) as any
     return r ? { ...r, fromMe: !!r.fromMe } : undefined
+  }
+
+  // --- Pesan proto mentah (getMessage) ------------------------------------
+  private rawInsertCount = 0
+
+  /** Menyimpan proto pesan mentah untuk retry dekripsi & dekripsi polling. */
+  setRawMessage(id: string, accountId: string, chatId: string, raw: unknown): void {
+    this.db
+      .prepare(
+        "INSERT OR REPLACE INTO raw_messages (id, account_id, chat_id, payload, created_at) VALUES (?, ?, ?, ?, ?)",
+      )
+      .run(id, accountId, chatId, JSON.stringify(raw), Date.now())
+    // Jaga ukuran: pruning ringan setiap ~1000 penyimpanan.
+    if (++this.rawInsertCount % 1000 === 0) this.pruneRawMessages()
+  }
+
+  getRawMessage(id: string): unknown | undefined {
+    const row = this.db.prepare("SELECT payload FROM raw_messages WHERE id=?").get(id) as any
+    if (!row) return undefined
+    try {
+      return JSON.parse(row.payload)
+    } catch {
+      return undefined
+    }
+  }
+
+  /** Menjaga jumlah pesan mentah tetap terbatas (buang yang tertua). */
+  pruneRawMessages(keep = 20_000): number {
+    const res = this.db
+      .prepare("DELETE FROM raw_messages WHERE id IN (SELECT id FROM raw_messages ORDER BY created_at DESC LIMIT -1 OFFSET ?)")
+      .run(keep)
+    return res.changes
   }
 
   // --- Sesi ----------------------------------------------------------------
