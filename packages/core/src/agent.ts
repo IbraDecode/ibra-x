@@ -117,7 +117,7 @@ export class Agent {
       if (!msg.toolCalls?.length) {
         const text = (msg.content ?? "").trim()
         messages.push({ role: "assistant", content: msg.content })
-        bus.emit("agent.finished", { sessionId: input.sessionId, reason: "completed", text })
+        bus.emit("agent.finished", { sessionId: input.sessionId, reason: "completed", text, usage })
         return { text, steps: step, usage, reason: "completed", toolCalls: executed }
       }
 
@@ -126,7 +126,7 @@ export class Agent {
       for (const call of msg.toolCalls) {
         if (call.name === FINISH_TOOL_NAME) {
           const text = String(call.arguments.text ?? msg.content ?? "").trim()
-          bus.emit("agent.finished", { sessionId: input.sessionId, reason: "finish", text })
+          bus.emit("agent.finished", { sessionId: input.sessionId, reason: "finish", text, usage })
           return { text, steps: step, usage, reason: "finish", toolCalls: executed }
         }
 
@@ -150,7 +150,7 @@ export class Agent {
 
         if (decision.effect === "ask" && !this.deps.autoApprove) {
           const text = `Aksi \`${call.name}\` memerlukan persetujuan (${decision.reason}). Menunggu konfirmasi.`
-          bus.emit("agent.finished", { sessionId: input.sessionId, reason: "approval-required", text })
+          bus.emit("agent.finished", { sessionId: input.sessionId, reason: "approval-required", text, usage })
           return { text, steps: step, usage, reason: "approval-required", toolCalls: executed }
         }
 
@@ -179,7 +179,7 @@ export class Agent {
     }
 
     const text = lastText || "Batas langkah tercapai. Mohon persempit permintaan."
-    bus.emit("agent.finished", { sessionId: input.sessionId, reason: "max-steps", text })
+    bus.emit("agent.finished", { sessionId: input.sessionId, reason: "max-steps", text, usage })
     return { text, steps: config.maxSteps, usage, reason: "max-steps", toolCalls: executed }
   }
 }

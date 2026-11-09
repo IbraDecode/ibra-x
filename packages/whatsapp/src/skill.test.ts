@@ -27,6 +27,7 @@ test("skill whatsapp mengekspos tool inti dengan tingkat risiko yang benar", () 
     "wa_group_setting",
     "wa_send_location",
     "wa_send_poll",
+    "wa_poll_results",
     "wa_profile_picture",
     "wa_block",
     "wa_archive",
@@ -54,4 +55,5 @@ test("skill whatsapp mengekspos tool inti dengan tingkat risiko yang benar", () 
   // Aksi baca rendah.
   assert.equal(tools.get("wa_get_history")!.risk, "low")
   assert.equal(tools.get("wa_check_number")!.risk, "low")
+  assert.equal(tools.get("wa_poll_results")!.risk, "low")
 })

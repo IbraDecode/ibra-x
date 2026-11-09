@@ -80,11 +80,13 @@ test("batas kedalaman subagen mencegah rekursi", async () => {  // Anak mencoba 
 
 class FakeTransport implements Transport {
   sent: Array<{ accountId: string; chatId: string; text: string }> = []
+  fail = false
   async sendMessage(
     accountId: string,
     chatId: string,
     payload: { text: string } | { mediaPath: string; mime: string; caption?: string; ptt?: boolean },
   ): Promise<{ messageId: string }> {
+    if (this.fail) throw new Error("jaringan putus")
     this.sent.push({ accountId, chatId, text: "text" in payload ? payload.text : (payload.caption ?? "[media]") })
     return { messageId: "m" }
   }
@@ -372,4 +374,31 @@ test("skema akun menerima syncFullHistory dan selfChat", () => {
   assert.equal(config.accounts[0]!.syncFullHistory, true)
   assert.equal(config.accounts[0]!.selfChat, false)
   assert.equal(ConfigSchema.parse({}).replyMaxAgeSeconds, 300)
+})
+
+test("outbox durable: pengiriman gagal disimpan lalu dicoba ulang", async () => {
+  const transport = new FakeTransport()
+  const provider = new ScriptedProvider([])
+  const store = new Store(":memory:")
+  const config = ConfigSchema.parse({})
+  const runtime = new Runtime({
+    config,
+    store,
+    bus: new EventBus(),
+    logger: noopLogger,
+    provider,
+    registry: new SkillRegistry(),
+    transport,
+  })
+
+  transport.fail = true
+  await runtime.sendMessage("c1", { text: "halo" }, { accountId: "a1" })
+  assert.equal(store.listOutbox("pending").length, 1, "gagal → masuk outbox")
+
+  transport.fail = false
+  const sent = await runtime.processOutboxOnce()
+  assert.equal(sent, 1)
+  assert.equal(store.listOutbox("pending").length, 0)
+  assert.equal(store.listOutbox("sent").length, 1)
+  store.close()
 })

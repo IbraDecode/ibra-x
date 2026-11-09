@@ -89,7 +89,7 @@ Tool MCP muncul otomatis sebagai skill dengan prefiks `<id>__`. Lihat [`docs/SKI
 | Skill | Isi |
 |---|---|
 | `core-memory` | Memori jangka panjang: simpan/cari/hapus fakta |
-| `whatsapp` | 28 tool WhatsApp (kirim teks/media/suara, reaksi, sunting/hapus, presence, riwayat, admin grup, poll, lokasi, kontak, arsip/pin/mute, blokir) |
+| `whatsapp` | 29 tool WhatsApp (kirim teks/media/suara, reaksi, sunting/hapus, presence, riwayat, admin grup, poll + hasilnya, lokasi, kontak, arsip/pin/mute, blokir) |
 | `subagents` | Delegasi ke subagen berkonteks terisolasi |
 | `autoreply` | Balasan otomatis berbasis aturan (hook, **tanpa** memanggil LLM) |
 | `handoff` | Handoff ke manusia — tahan balasan otomatis per chat (dengan eskalasi otomatis) |
@@ -128,6 +128,7 @@ Skill bawaan `whatsapp` mengekspos operasi ini sebagai tool (semuanya tunduk pad
 | `wa_group_setting` | medium | Pengaturan grup (announcement/locked) |
 | `wa_send_location` | medium | Kirim lokasi |
 | `wa_send_poll` | medium | Kirim poll |
+| `wa_poll_results` | low | Hasil suara sebuah poll |
 | `wa_profile_picture` | low | URL foto profil |
 | `wa_block` | **high** | Blokir/buka blokir (butuh persetujuan) |
 | `wa_archive` | low | Arsipkan chat |
@@ -175,7 +176,7 @@ Payload JSON: `{ event, at, data }`. Bila `secret` diisi, header `x-ibra-signatu
 
 ## Dashboard
 
-Setelah `ibrax start`, buka **http://127.0.0.1:8787** — dashboard satu halaman (tanpa build step) menampilkan status, akun, skill/tool, pencarian memori, penguji agen, dan aliran event langsung (SSE). Bila `IBRA_API_TOKEN` diset, buka dengan `?token=<token>`.
+Setelah `ibrax start`, buka **http://127.0.0.1:8787** — dashboard satu halaman (tanpa build step) menampilkan status, akun, skill/tool, pencarian memori, penguji agen, dan aliran event langsung (SSE). Bila `IBRA_API_TOKEN` diset, buka dengan `?token=<token>`. Endpoint **`GET /api/metrics`** menyajikan ringkasan metrik (pesan, LLM, tool, token, error, polling).
 
 ---
 
@@ -200,6 +201,8 @@ ibrax memory verify                 # jumlah + sidik jari (deteksi perubahan)
   sehingga backlog saat offline tidak memicu banjir balasan.
 - **Jam tenang** — `IBRA_QUIET_HOURS` (mis. `22:00-07:00`) menahan balasan otomatis.
 - **Isolasi kanal** — konten pesan diperlakukan sebagai data, bukan instruksi.
+- **Tolak panggilan** — `IBRA_REJECT_CALLS` menolak panggilan masuk otomatis (bot tidak mendukung panggilan).
+- **Web fetch aman (SSRF)** — host diresolusi (DNS) dan **setiap redirect** divalidasi; alamat privat/loopback ditolak.
 
 ## Dokumentasi
 

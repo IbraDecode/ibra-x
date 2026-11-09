@@ -82,8 +82,9 @@ Tahapan:
 3. **Policy.** Allowlist pengirim, peran akun, mode (mention-only, quiet hours), deteksi risiko.
 4. **Router.** Memilih sesi agen (per chat) dan agen yang tepat.
 5. **Agent loop.** Bangun konteks, muat memori, panggil tool, batasi langkah/biaya.
-6. **Outbox.** Aksi keluar ditulis ke outbox (transaksional), lalu dikirim lewat transport dengan serialisasi.
-7. **Observability.** Setiap turn/step/tool menghasilkan trace.
+6. **Outbox.** Aksi keluar ditulis ke outbox (transaksional), lalu dikirim lewat transport dengan serialisasi. Bila pengiriman gagal, pesan tetap di outbox dan dicoba ulang otomatis hingga berhasil atau mencapai batas percobaan.
+7. **Observability.** Setiap turn/step/tool menghasilkan trace (event bus), dan `MetricsRegistry` mengagregasi metrik (pesan, LLM, tool, token, error, polling) untuk dashboard/endpoint.
+8. **Interaksi lanjutan.** Suara polling (`messages.update`) didekripsi memakai `getMessage`, diagregasi, dan dipancarkan lewat event `poll.vote`.
 
 ---
 

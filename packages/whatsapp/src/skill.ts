@@ -429,6 +429,19 @@ export const whatsappSkill = defineSkill({
         return { ok: true as const }
       },
     }),
+    defineTool<{ pollId: string }, { votes: Array<{ name: string; voters: string[] }> | undefined }>({
+      name: "wa_poll_results",
+      description: "Ambil hasil suara sebuah polling berdasarkan ID pesan pembuat poll (bila sudah diterima/didekripsi).",
+      parameters: {
+        type: "object",
+        properties: { pollId: { type: "string", description: "ID pesan polling." } },
+        required: ["pollId"],
+      },
+      risk: "low",
+      async execute(input, ctx) {
+        return { votes: await ops(ctx).pollResults(input.pollId) }
+      },
+    }),
     defineTool<{ chatId?: string }, { url: string | undefined }>({
       name: "wa_profile_picture",
       description: "Ambil URL foto profil sebuah kontak/grup.",

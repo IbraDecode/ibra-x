@@ -1,6 +1,6 @@
 {
   "name": "@ibrax/providers",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "description": "Adaptor penyedia LLM untuk Ibra X (engine OpenAI-compatible + preset).",
   "license": "MIT",
   "type": "module",

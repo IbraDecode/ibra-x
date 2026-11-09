@@ -206,6 +206,8 @@ export interface WhatsAppOps {
     contact: { displayName: string; vcard: string },
     opts?: { accountId?: string },
   ): Promise<void>
+  /** Hasil agregasi suara sebuah polling (bila pernah diterima/didekripsi). */
+  pollResults(pollId: string): Promise<Array<{ name: string; voters: string[] }> | undefined>
 }
 
 /** Delegasi ke sub-agen dengan konteks terisolasi. */

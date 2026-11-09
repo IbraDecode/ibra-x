@@ -6,6 +6,7 @@ import {
   DisconnectReason,
   downloadMediaMessage,
   fetchLatestBaileysVersion,
+  getAggregateVotesInPollMessage,
   makeWASocket,
   type AnyMessageContent,
   type WASocket,
@@ -37,10 +38,22 @@ export interface AccountRuntimeOptions {
   logLevel?: string
   /** Sinkronkan riwayat penuh saat konek (cocok untuk akun observer). */
   syncFullHistory?: boolean
+  /** Tolak panggilan masuk secara otomatis. */
+  rejectCalls?: boolean
   /** Ambil proto pesan mentah berdasarkan id (untuk getMessage: retry & poll). */
   getRawMessage?: (id: string) => unknown
   /** Simpan proto pesan mentah saat pesan masuk. */
   onRawMessage?: (accountId: string, id: string, chatId: string, raw: unknown) => void
+  /** Dipanggil saat suara polling terkumpul (setelah didekripsi). */
+  onPollVote?: (info: PollVoteInfo) => void
+}
+
+/** Hasil agregasi suara sebuah polling. */
+export interface PollVoteInfo {
+  accountId: string
+  chatId: string
+  pollId: string
+  votes: Array<{ name: string; voters: string[] }>
 }
 
 /**
@@ -155,6 +168,58 @@ export class AccountRuntime {
         void this.processIncoming(raw as WAMessage)
       }
     })
+
+    // Tolak panggilan masuk otomatis (bot tidak mendukung panggilan suara/video).
+    if (this.opts.rejectCalls) {
+      sock.ev.on("call", (calls) => {
+        for (const call of calls) {
+          if (call.status === "offer") void this.rejectCall(call.id, call.from)
+        }
+      })
+    }
+
+    // Dekripsi suara polling: datang sebagai messages.update (bukan pesan baru)
+    // dan memerlukan pesan pembuat asli (via getMessage).
+    sock.ev.on("messages.update", (updates) => {
+      for (const { key, update } of updates) {
+        const pollUpdates = (update as { pollUpdates?: unknown[] } | undefined)?.pollUpdates
+        if (pollUpdates?.length) void this.handlePollUpdate(key, pollUpdates)
+      }
+    })
+  }
+
+  /** Menolak panggilan masuk (best-effort). */
+  private async rejectCall(id: string, from: string): Promise<void> {
+    try {
+      await this.sock?.rejectCall(id, from)
+      this.opts.logger.info({ from }, "panggilan masuk ditolak otomatis")
+    } catch (error) {
+      this.opts.logger.debug({ error }, "gagal menolak panggilan")
+    }
+  }
+
+  /** Mengagregasi suara polling memakai pesan pembuat asli (dari getMessage). */
+  private async handlePollUpdate(
+    key: { id?: string | null; remoteJid?: string | null },
+    pollUpdates: unknown[],
+  ): Promise<void> {
+    if (!key?.id) return
+    const pollCreation = this.opts.getRawMessage?.(key.id)
+    if (!pollCreation) return
+    try {
+      const votes = getAggregateVotesInPollMessage({
+        message: pollCreation as never,
+        pollUpdates: pollUpdates as never,
+      })
+      this.opts.onPollVote?.({
+        accountId: this.id,
+        chatId: key.remoteJid ?? "",
+        pollId: key.id,
+        votes: votes.map((v) => ({ name: v.name, voters: v.voters })),
+      })
+    } catch (error) {
+      this.opts.logger.debug({ error, pollId: key.id }, "gagal mengagregasi suara polling")
+    }
   }
 
   /** Menormalkan pesan, mengunduh media (bila ada), lalu meneruskannya ke handler. */

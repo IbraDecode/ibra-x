@@ -1,7 +1,7 @@
 import type { Transport } from "@ibrax/core"
 import type { IbraConfig } from "@ibrax/core"
 import type { InboundMessage, Logger } from "@ibrax/sdk"
-import { AccountRuntime, type AccountStatus } from "./account.ts"
+import { AccountRuntime, type AccountStatus, type PollVoteInfo } from "./account.ts"
 
 export interface WhatsAppManagerOptions {
   config: IbraConfig
@@ -15,6 +15,8 @@ export interface WhatsAppManagerOptions {
   getRawMessage?: (id: string) => unknown
   /** Simpan proto pesan mentah saat pesan masuk. */
   onRawMessage?: (accountId: string, id: string, chatId: string, raw: unknown) => void
+  /** Dipanggil saat suara polling terkumpul. */
+  onPollVote?: (info: PollVoteInfo) => void
 }
 
 /**
@@ -68,8 +70,10 @@ export class WhatsAppManager implements Transport {
       printQr: this.opts.printQr,
       logLevel: this.opts.config.logLevel === "debug" ? "debug" : "warn",
       syncFullHistory: account?.syncFullHistory ?? false,
+      rejectCalls: this.opts.config.rejectCalls,
       getRawMessage: this.opts.getRawMessage,
       onRawMessage: this.opts.onRawMessage,
+      onPollVote: this.opts.onPollVote,
     })
     this.runtimes.set(accountId, runtime)
     await runtime.start()

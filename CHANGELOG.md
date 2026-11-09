@@ -4,6 +4,26 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.24.0] — 2026-11-09
+
+### Ditambahkan
+- **Dekripsi suara polling**: event `messages.update` diproses; suara diagregasi memakai
+  pesan pembuat asli (via `getMessage`), disimpan di kv, dipancarkan lewat event `poll.vote`,
+  dan dapat dibaca lewat tool baru **`wa_poll_results`**.
+- **Penolakan panggilan otomatis** (`rejectCalls`, env `IBRA_REJECT_CALLS`): panggilan masuk
+  ditolak sopan (bot tidak mendukung panggilan suara/video).
+- **Outbox durable**: pengiriman yang gagal disimpan ke tabel `outbox` dan dicoba ulang
+  otomatis (runner tiap 30 detik, maksimum 5 percobaan) — tidak ada balasan yang hilang
+  saat gangguan jaringan.
+- **Modul metrics** (`MetricsRegistry`): agregasi dari event bus (pesan masuk/keluar, LLM,
+  tool, subagen, token, error, polling) + endpoint **`GET /api/metrics`** dan event `poll.vote`
+  pada aliran SSE.
+
+### Diperbaiki
+- **Pengerasan SSRF** pada skill `web-fetch`: validasi host + resolusi DNS (semua alamat) +
+  validasi **setiap redirect** (redirect tidak lagi diikuti otomatis), menutup celah
+  DNS-rebinding dan redirect ke alamat privat.
+
 ## [0.23.0] — 2026-11-09
 
 ### Ditambahkan

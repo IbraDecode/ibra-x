@@ -276,6 +276,10 @@ export class Runtime implements RuntimeApi {
       const accountId = opts?.accountId ?? this.currentAccountId
       await this.transport?.sendContact(accountId, chatId, contact)
     },
+    pollResults: async (pollId) => {
+      const stored = this.store.kvGet<{ votes?: Array<{ name: string; voters: string[] }> }>(`poll:${pollId}`)
+      return stored?.votes
+    },
   }
 
   private readonly config: IbraConfig
@@ -355,11 +359,54 @@ export class Runtime implements RuntimeApi {
       return { messageId: id }
     }
 
-    const res = await this.transport.sendMessage(accountId, chatId, payload, { replyTo: opts?.replyTo })
-    this.bus.emit("outbound.message", { accountId, chatId, text, messageId: res.messageId })
-    this.recordOutgoing(accountId, chatId, res.messageId, text)
-    this.store.audit({ actor: accountId, action: "sendMessage", detail: { chatId, kind: "text" } })
-    return res
+    try {
+      const res = await this.transport.sendMessage(accountId, chatId, payload, { replyTo: opts?.replyTo })
+      this.bus.emit("outbound.message", { accountId, chatId, text, messageId: res.messageId })
+      this.recordOutgoing(accountId, chatId, res.messageId, text)
+      this.store.audit({ actor: accountId, action: "sendMessage", detail: { chatId, kind: "text" } })
+      return res
+    } catch (error) {
+      // Outbox durable: simpan agar dicoba ulang (tidak ada pesan yang hilang saat gangguan).
+      const id = randomUUID()
+      this.store.enqueueOutbox({ id, accountId, chatId, payload })
+      this.store.audit({ actor: accountId, action: "outbox.enqueue", detail: { chatId } })
+      this.bus.emit("error", { scope: "runtime.send", error })
+      this.logger.warn({ error, chatId }, "pengiriman gagal — disimpan ke outbox untuk dicoba ulang")
+      return { messageId: id }
+    }
+  }
+
+  /**
+   * Memproses antrean outbox: mencoba ulang pengiriman yang gagal.
+   * Dipanggil berkala oleh aplikasi; idempoten dan aman.
+   */
+  async processOutboxOnce(maxAttempts = 5): Promise<number> {
+    if (!this.transport) return 0
+    const rows = this.store.listOutbox("pending")
+    let sent = 0
+    for (const row of rows) {
+      if (row.attempts >= maxAttempts) {
+        this.store.updateOutbox(row.id, { state: "failed" })
+        continue
+      }
+      try {
+        const payload = JSON.parse(row.payload) as
+          | { text: string }
+          | { mediaPath: string; mime: string; caption?: string; ptt?: boolean }
+        await this.transport.sendMessage(row.accountId, row.chatId, payload)
+        const text = "text" in payload ? payload.text : "[media]"
+        this.recordOutgoing(row.accountId, row.chatId, row.id, text)
+        this.store.updateOutbox(row.id, { state: "sent", attempts: row.attempts + 1 })
+        sent++
+      } catch (error) {
+        this.store.updateOutbox(row.id, {
+          state: "pending",
+          attempts: row.attempts + 1,
+          lastError: error instanceof Error ? error.message : String(error),
+        })
+      }
+    }
+    return sent
   }
 
   async getChatHistory(

@@ -13,6 +13,7 @@ import {
   ensureDataDir,
   loadMcpSkills,
   loadSkills,
+  MetricsRegistry,
   registerSkillJobs,
   resolveSkillDirs,
   subagentSkill,
@@ -46,6 +47,7 @@ export interface IbraApp {
   runtime: Runtime
   manager: WhatsAppManager
   scheduler: Scheduler
+  metrics: MetricsRegistry
   start(): Promise<void>
   stop(): void
 }
@@ -60,6 +62,7 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
   const dataDir = ensureDataDir(config)
   const store = new Store(resolve(dataDir, "ibra.sqlite"))
   const bus = new EventBus()
+  const metrics = new MetricsRegistry(bus)
 
   // Webhook keluar (opsional): tersambung ke bus event.
   const webhooks = new WebhookDispatcher(bus, { logger: logger.child({ comp: "webhooks" }) })
@@ -101,6 +104,15 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
     getRawMessage: (id: string) => store.getRawMessage(id),
     onRawMessage: (accountId: string, id: string, chatId: string, raw: unknown) =>
       store.setRawMessage(id, accountId, chatId, raw),
+    onPollVote: (info) => {
+      store.kvSet(`poll:${info.pollId}`, info)
+      store.audit({
+        actor: info.accountId,
+        action: "poll.vote",
+        detail: { pollId: info.pollId, chatId: info.chatId, total: info.votes.length },
+      })
+      bus.emit("poll.vote", info)
+    },
   })
 
   // Transkripsi audio (opsional) memakai endpoint penyedia aktif.
@@ -186,12 +198,20 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
     logger.info({ accountId, status, reason }, "status akun WhatsApp")
   })
 
+  let outboxTimer: NodeJS.Timeout | undefined
+
   async function start(): Promise<void> {
     await manager.startAll()
     scheduler.start()
+    // Runner outbox: mencoba ulang pengiriman yang gagal setiap 30 detik.
+    outboxTimer = setInterval(() => {
+      void runtime.processOutboxOnce().catch((error) => logger.warn({ error }, "proses outbox gagal"))
+    }, 30_000)
+    outboxTimer.unref?.()
   }
 
   function stop(): void {
+    if (outboxTimer) clearInterval(outboxTimer)
     scheduler.stop()
     webhooks.stop()
     manager.stopAll()
@@ -199,7 +219,7 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
     store.close()
   }
 
-  const app: IbraApp = { config, logger, store, bus, registry, runtime, manager, scheduler, start, stop }
+  const app: IbraApp = { config, logger, store, bus, registry, runtime, manager, scheduler, metrics, start, stop }
   if (opts.autoStart) await start()
   return app
 }

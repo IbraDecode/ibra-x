@@ -57,6 +57,8 @@ export function createServer(app: IbraApp) {
 
   server.get("/api/accounts", (c) => c.json(app.manager.accountIds.map((id) => ({ id, status: app.manager.getRuntime(id)?.status }))))
 
+  server.get("/api/metrics", (c) => c.json(app.metrics.snapshot()))
+
   server.get("/api/chats", (c) => c.json(app.store.listChats()))
 
   server.get("/api/memory/search", (c) => {
@@ -117,6 +119,7 @@ export function createServer(app: IbraApp) {
         "agent.finished",
         "account.status",
         "memory.written",
+        "poll.vote",
       ] as const
       const unsubs = events.map((event) =>
         app.bus.on(event, (payload) => {

@@ -6,9 +6,15 @@ export interface IbraEvents {
   "outbound.message": { accountId: string; chatId: string; text: string; messageId?: string }
   "agent.step": { sessionId: string; step: number; kind: "llm" | "tool"; detail?: string }
   "agent.tool": { sessionId: string; tool: string; risk: string; ok: boolean; ms: number }
-  "agent.finished": { sessionId: string; reason: string; text?: string }
+  "agent.finished": {
+    sessionId: string
+    reason: string
+    text?: string
+    usage?: { inputTokens?: number; outputTokens?: number }
+  }
   "account.status": { accountId: string; status: "idle" | "connecting" | "open" | "close"; reason?: string }
   "memory.written": { id: string; scope: string; text: string }
+  "poll.vote": { accountId: string; chatId: string; pollId: string; votes: Array<{ name: string; voters: string[] }> }
   error: { scope: string; error: unknown }
 }
 

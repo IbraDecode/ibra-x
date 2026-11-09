@@ -65,6 +65,8 @@ export const ConfigSchema = z.object({
   replyMaxAgeSeconds: z.number().int().min(0).default(300),
   /** Kompaksi sesi: jumlah pesan baru sebelum ringkasan dibuat ulang (0 = nonaktif). */
   compactAfterMessages: z.number().int().min(0).default(60),
+  /** Tolak panggilan masuk secara otomatis (bot tidak mendukung panggilan). */
+  rejectCalls: z.boolean().default(false),
   allowlist: z.array(z.string()).default([]),
   ownerNumbers: z.array(z.string()).default([]),
   apiToken: z.string().default(""),
@@ -148,6 +150,7 @@ export function applyEnv(raw: Record<string, unknown>, env: NodeJS.ProcessEnv = 
   if (env.IBRA_MAX_STEPS) (out as any).maxSteps = Number(env.IBRA_MAX_STEPS)
   if (env.IBRA_MAX_TOKENS_PER_TURN) (out as any).maxTokensPerTurn = Number(env.IBRA_MAX_TOKENS_PER_TURN)
   if (env.IBRA_REPLY_MAX_AGE !== undefined) (out as any).replyMaxAgeSeconds = Number(env.IBRA_REPLY_MAX_AGE)
+  if (env.IBRA_REJECT_CALLS !== undefined) (out as any).rejectCalls = env.IBRA_REJECT_CALLS === "true"
   if (env.IBRA_ALLOWLIST !== undefined) {
     ;(out as any).allowlist = env.IBRA_ALLOWLIST.split(",")
       .map((s) => s.trim())
