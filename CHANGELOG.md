@@ -4,6 +4,19 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.27.0] — 2026-11-09
+
+### Ditambahkan
+- **Dashboard**: panel **Metrik** (pesan, LLM, tool, subagen, token, error, polling) dan
+  event baru (`poll.vote`, `message.revoked`) pada aliran langsung.
+- Tes endpoint server (`/api/metrics`, `/api/revoked`).
+
+### Diperbaiki
+- **Gerbang `mentionOnly`**: kini memeriksa apakah **bot sendiri** disebut (via
+  `mentionedMe`), bukan apakah allowlist/owner disebut. Pemilik selalu dapat memicu.
+- **Webhook**: event `poll.vote` dan `message.revoked` ditambahkan ke daftar event yang
+  dapat dilanggankan (sebelumnya tidak bisa dipilih).
+
 ## [0.26.1] — 2026-11-09
 
 ### Diperbaiki

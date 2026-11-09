@@ -205,6 +205,7 @@ ibrax memory verify                 # jumlah + sidik jari (deteksi perubahan)
   sehingga backlog saat offline tidak memicu banjir balasan.
 - **Jam tenang** — `IBRA_QUIET_HOURS` (mis. `22:00-07:00`) menahan balasan otomatis.
 - **Isolasi kanal** — konten pesan diperlakukan sebagai data, bukan instruksi.
+- **Mention-only** — pada grup, agen hanya merespons bila **bot sendiri disebut** (`mentionOnly` per akun); pemilik selalu dapat memicu.
 - **Tolak panggilan** — `IBRA_REJECT_CALLS` menolak panggilan masuk otomatis (bot tidak mendukung panggilan).
 - **Web fetch aman (SSRF)** — host diresolusi (DNS) dan **setiap redirect** divalidasi; alamat privat/loopback ditolak.
 

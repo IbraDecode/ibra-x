@@ -691,9 +691,8 @@ export class Runtime implements RuntimeApi {
     this.chatLimiter.record(msg.chatId)
 
     if (account.mentionOnly && msg.chatKind === "group") {
-      const targets = new Set([...this.config.allowlist, ...this.config.ownerNumbers].map((s) => s.replace(/[^0-9]/g, "")))
-      const mentioned = (msg.mentions ?? []).some((m) => targets.has(m.replace(/[^0-9]/g, "")))
-      if (!mentioned) {
+      // Hanya balas bila BOT sendiri disebut (atau pemilik memicunya).
+      if (!msg.mentionedMe && !this.policy.isOwner(msg.senderId)) {
         this.logger.debug({ chat: msg.chatId }, "grup: agen tidak disebut, dilewati")
         return
       }

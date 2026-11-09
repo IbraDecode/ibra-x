@@ -395,6 +395,8 @@ export interface InboundMessage {
   media?: { kind: string; mime?: string; localPath?: string; caption?: string }
   mentions?: string[]
   quotedId?: string
+  /** Apakah pesan ini menyebut akun bot ini sendiri (untuk gerbang mentionOnly). */
+  mentionedMe?: boolean
   /** Pesan media yang bersifat sekali-lihat (view-once). */
   isViewOnce?: boolean
   /** Pesan dari chat sementara (disappearing). */

@@ -484,3 +484,38 @@ test("revoke menyimpan snapshot pesan asli", async () => {
   assert.equal(revoked?.chatId, "c1")
   store.close()
 })
+
+test("gerbang mentionOnly: grup hanya dibalas bila bot disebut", async () => {
+  const provider = new ScriptedProvider([{ message: { role: "assistant", content: "hai" }, usage: {} }])
+  const transport = new FakeTransport()
+  const { runtime, store } = buildWithTransport(provider, transport, {
+    autonomy: "auto",
+    accounts: [{ id: "a1", role: "assistant", mentionOnly: true, respondTo: "all" }],
+  })
+
+  await runtime.handleInbound({
+    id: "g1",
+    accountId: "a1",
+    chatId: "123@g.us",
+    chatKind: "group",
+    senderId: "62811@s.whatsapp.net",
+    fromMe: false,
+    timestamp: Date.now(),
+    text: "halo semua",
+  })
+  assert.equal(transport.sent.length, 0, "tanpa menyebut bot → tidak dibalas")
+
+  await runtime.handleInbound({
+    id: "g2",
+    accountId: "a1",
+    chatId: "123@g.us",
+    chatKind: "group",
+    senderId: "62811@s.whatsapp.net",
+    fromMe: false,
+    timestamp: Date.now(),
+    text: "bot tolong",
+    mentionedMe: true,
+  })
+  assert.equal(transport.sent.length, 1, "menyebut bot → dibalas")
+  store.close()
+})

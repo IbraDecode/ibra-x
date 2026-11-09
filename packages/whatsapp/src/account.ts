@@ -234,6 +234,11 @@ export class AccountRuntime {
     // Tandai gema pesan yang dikirim bot ini (bukan diketik pemilik di ponsel).
     if (normalized.fromMe) normalized.isEcho = this.sentIds.has(normalized.id)
 
+    // Apakah bot ini disebut (untuk gerbang mentionOnly akun).
+    if (normalized.mentions?.length && this.ownIds.size > 0) {
+      normalized.mentionedMe = normalized.mentions.some((jid) => this.ownIds.has(jidIdentity(jid)))
+    }
+
     // Simpan proto mentah untuk getMessage (retry dekripsi & dekripsi polling).
     if (this.opts.onRawMessage) {
       const rawProto = (raw as { message?: unknown }).message

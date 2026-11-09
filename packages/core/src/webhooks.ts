@@ -11,6 +11,8 @@ const ALL_EVENTS: Array<keyof IbraEvents> = [
   "agent.finished",
   "account.status",
   "memory.written",
+  "poll.vote",
+  "message.revoked",
   "error",
 ]
 

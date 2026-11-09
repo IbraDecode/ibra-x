@@ -53,6 +53,11 @@ export function dashboardHtml(): string {
   </section>
 
   <section>
+    <h2>Metrik</h2>
+    <div class="kv" id="metrics"><span class="muted">memuat...</span></div>
+  </section>
+
+  <section>
     <h2>Akun WhatsApp</h2>
     <div class="chips" id="accounts"><span class="muted">—</span></div>
   </section>
@@ -129,6 +134,25 @@ export function dashboardHtml(): string {
       el("statusBadge").textContent = "error: " + e.message;
       el("statusBadge").style.color = "var(--err)";
     }
+    try {
+      const m = await jget("/api/metrics");
+      el("metrics").innerHTML = [
+        ["Pesan masuk", m.inboundMessages],
+        ["Pesan keluar", m.outboundMessages],
+        ["Panggilan LLM", m.llmCalls],
+        ["Jalan agen", m.agentRuns],
+        ["Error agen", m.agentErrors],
+        ["Panggilan tool", m.toolCalls],
+        ["Error tool", m.toolErrors],
+        ["Subagen", m.subagentRuns],
+        ["Suara polling", m.pollVotes],
+        ["Token masuk", m.inputTokens],
+        ["Token keluar", m.outputTokens],
+        ["Error", m.errors],
+      ].map(([k, v]) => '<span>' + esc(k) + '</span><span>' + esc(v) + '</span>').join("");
+    } catch {
+      el("metrics").innerHTML = '<span class="muted">tidak tersedia</span>';
+    }
   }
 
   el("sendChat").onclick = async () => {
@@ -163,8 +187,8 @@ export function dashboardHtml(): string {
 
   const events = el("events");
   const es = new EventSource(api("/api/events"));
-  const colors = { "inbound.message": "ev-in", "outbound.message": "ev-out", error: "ev-err" };
-  ["inbound.message", "outbound.message", "agent.step", "agent.tool", "agent.finished", "account.status", "memory.written", "error"].forEach((name) => {
+  const colors = { "inbound.message": "ev-in", "outbound.message": "ev-out", "message.revoked": "ev-err", error: "ev-err" };
+  ["inbound.message", "outbound.message", "agent.step", "agent.tool", "agent.finished", "account.status", "memory.written", "poll.vote", "message.revoked", "error"].forEach((name) => {
     es.addEventListener(name, (ev) => {
       if (events.textContent === "menunggu…") events.textContent = "";
       const line = document.createElement("div");
