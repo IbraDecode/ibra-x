@@ -4,6 +4,13 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.26.1] — 2026-11-09
+
+### Diperbaiki
+- **Daftar skill bawaan terpusat** (`coreBuiltinSkills`): sebelumnya terduplikasi di tiga
+  tempat (app + CLI 2×), sehingga skill baru mudah terlewat. Kini `approvals` dan skill
+  bawaan lain selalu termuat — CLI `status` menampilkan 13 skill & 60 tool.
+
 ## [0.26.0] — 2026-11-09
 
 ### Ditambahkan

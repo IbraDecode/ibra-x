@@ -180,3 +180,9 @@ export const approvalsSkill = defineSkill({
     }),
   ],
 })
+
+/**
+ * Skill bawaan dari paket core (selalu tersedia). Gunakan ini bersama
+ * `whatsappSkill` agar daftar builtin tidak terduplikasi/terlewat antar paket.
+ */
+export const coreBuiltinSkills = [coreMemorySkill, subagentSkill, approvalsSkill]

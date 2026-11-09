@@ -5,7 +5,7 @@ import pc from "picocolors"
 import {
   ConfigSchema,
   Store,
-  coreMemorySkill,
+  coreBuiltinSkills,
   createLogger,
   ensureDataDir,
   loadConfig,
@@ -13,7 +13,6 @@ import {
   loadSkills,
   resolveSkillDirs,
   saveConfig,
-  subagentSkill,
   configPath,
   type IbraConfig,
 } from "@ibrax/core"
@@ -199,7 +198,7 @@ export async function cmdStatus(): Promise<void> {
     dirs: resolveSkillDirs(config.skills.dirs, import.meta.url),
     packages: config.skills.packages,
     disabled: config.skills.disabled,
-    builtins: [coreMemorySkill, whatsappSkill, subagentSkill],
+    builtins: [...coreBuiltinSkills, whatsappSkill],
     store: { get: async () => undefined, set: async () => {}, delete: async () => {}, list: async () => [] },
     logger: createLogger({ level: "error" }),
   })
@@ -262,7 +261,7 @@ export async function cmdSkills(): Promise<void> {
     dirs: resolveSkillDirs(config.skills.dirs, import.meta.url),
     packages: config.skills.packages,
     disabled: config.skills.disabled,
-    builtins: [coreMemorySkill, whatsappSkill, subagentSkill],
+    builtins: [...coreBuiltinSkills, whatsappSkill],
     store: { get: async () => undefined, set: async () => {}, delete: async () => {}, list: async () => [] },
     logger: createLogger({ level: "error" }),
   })
