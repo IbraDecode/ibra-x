@@ -174,6 +174,7 @@ ibrax memory verify                 # jumlah + sidik jari (deteksi perubahan)
 
 ## Dokumentasi
 
+- 🌐 **Situs dokumentasi**: https://ibradecode.github.io/ibra-x/
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — arsitektur, keputusan desain, dan alur.
 - [`docs/SKILLS.md`](docs/SKILLS.md) — cara menulis skill dan memakai server MCP.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — alur kontribusi dan strategi branch.
