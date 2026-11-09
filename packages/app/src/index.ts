@@ -2,6 +2,7 @@ import { resolve } from "node:path"
 import {
   EventBus,
   Runtime,
+  Scheduler,
   Store,
   coreMemorySkill,
   createLogger,
@@ -9,6 +10,7 @@ import {
   ensureDataDir,
   loadMcpSkills,
   loadSkills,
+  registerSkillJobs,
   type IbraConfig,
   type SkillRegistry,
 } from "@ibrax/core"
@@ -35,6 +37,7 @@ export interface IbraApp {
   registry: SkillRegistry
   runtime: Runtime
   manager: WhatsAppManager
+  scheduler: Scheduler
   start(): Promise<void>
   stop(): void
 }
@@ -114,6 +117,14 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
 
   manager.setInboundHandler((msg) => runtime.handleInbound(msg))
 
+  // Scheduler untuk job periodik milik skill (pengingat, pesan terjadwal, dst.).
+  const scheduler = new Scheduler({ logger: logger.child({ comp: "scheduler" }) })
+  registerSkillJobs(scheduler, registry.list(), {
+    runtime,
+    storeFor: (skillId) => runtime.skillStore(skillId),
+    logger: logger.child({ comp: "jobs" }),
+  })
+
   // Registrasi akun ke store untuk jejak & audit.
   for (const account of config.accounts) {
     store.upsertAccount({ id: account.id, role: account.role, label: account.label, enabled: account.enabled })
@@ -125,15 +136,17 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
 
   async function start(): Promise<void> {
     await manager.startAll()
+    scheduler.start()
   }
 
   function stop(): void {
+    scheduler.stop()
     manager.stopAll()
     void Promise.all(mcp.clients.map((client) => client.close().catch(() => {})))
     store.close()
   }
 
-  const app: IbraApp = { config, logger, store, bus, registry, runtime, manager, start, stop }
+  const app: IbraApp = { config, logger, store, bus, registry, runtime, manager, scheduler, start, stop }
   if (opts.autoStart) await start()
   return app
 }

@@ -43,6 +43,7 @@ export interface DefineSkillInput {
   version?: string
   tools?: Tool[]
   commands?: Skill["commands"]
+  jobs?: Skill["jobs"]
   systemPrompt?: string
   setup?: Skill["setup"]
 }
@@ -62,6 +63,7 @@ export function defineSkill(input: DefineSkillInput): Skill {
     version: input.version ?? "0.1.0",
     tools: input.tools ?? [],
     commands: input.commands ?? [],
+    jobs: input.jobs ?? [],
     systemPrompt: input.systemPrompt,
     setup: input.setup,
   }

@@ -253,6 +253,9 @@ export async function cmdSkills(): Promise<void> {
     for (const tool of skill.tools ?? []) {
       console.log(`      • ${tool.name} ${pc.dim(`[${tool.risk}]`)}`)
     }
+    for (const job of skill.jobs ?? []) {
+      console.log(`      ⏱ ${job.id} ${pc.dim(`setiap ${Math.max(1, Math.round(job.intervalMs / 1000))}s`)}`)
+    }
   }
   console.log()
 }

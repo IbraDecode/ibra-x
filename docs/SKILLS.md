@@ -91,6 +91,30 @@ npm run cli -- chat "apa cuaca di Jakarta?"
 
 Atau unit test langsung terhadap `execute` dengan `ctx` tiruan.
 
+## Job Periodik (Otomasi)
+
+Skill dapat bertindak proaktif dengan mendeklarasikan `jobs`. Scheduler akan
+memanggilnya sesuai interval; state disimpan di `ctx.store` milik skill:
+
+```ts
+export default defineSkill({
+  id: "laporan-harian",
+  name: "Laporan Harian",
+  jobs: [
+    {
+      id: "harian",
+      intervalMs: 24 * 60 * 60 * 1000,
+      async run(ctx) {
+        await ctx.runtime.sendMessage("62812...@s.whatsapp.net", { text: "Ringkasan hari ini: …" })
+        ctx.logger.info("laporan terkirim")
+      },
+    },
+  ],
+})
+```
+
+`JobContext` = `{ logger, store, runtime }`. Kegagalan job ditangkap dan dicatat, tidak menghentikan job lain.
+
 ## Distribusi
 
 - **Lokal**: taruh di `skills/`.

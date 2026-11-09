@@ -87,6 +87,17 @@ Skill bawaan `whatsapp` mengekspos operasi ini sebagai tool (semuanya tunduk pad
 
 Media masuk diunduh otomatis ke `<dataDir>/media/`. Aktifkan **transkripsi pesan suara** otomatis dengan `IBRA_TRANSCRIBE=true` (atau `media.transcribe` di config) — transkrip akan dilampirkan ke konteks agen.
 
+## Otomasi (job periodik)
+
+Agen dapat bertindak **proaktif** lewat job periodik yang dideklarasikan skill:
+
+| Skill | Job | Fungsi |
+|---|---|---|
+| `reminders` | setiap 60s | Mengirim pengingat yang jatuh tempo |
+| `scheduler` | setiap 30s | Mengirim pesan terjadwal |
+
+Skill kustom dapat menambahkan `jobs` sendiri (lihat [`docs/SKILLS.md`](docs/SKILLS.md)). State job disimpan di `SkillStore` masing-masing, sehingga scheduler tetap sederhana tanpa layanan eksternal.
+
 ---
 
 ## Dokumentasi

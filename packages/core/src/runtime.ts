@@ -199,7 +199,7 @@ export class Runtime implements RuntimeApi {
     }
   }
 
-  private skillStore(skillId: string): SkillStore {
+  skillStore(skillId: string): SkillStore {
     const prefix = `skill:${skillId}:`
     return {
       get: async <T>(key: string) => this.store.kvGet<T>(prefix + key),

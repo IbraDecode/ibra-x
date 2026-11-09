@@ -228,6 +228,21 @@ export interface SkillSetupApi {
   store: SkillStore
 }
 
+/** Konteks yang diberikan ke job terjadwal milik skill. */
+export interface JobContext {
+  logger: Logger
+  store: SkillStore
+  runtime: RuntimeApi
+}
+
+/** Job periodik yang didaftarkan skill dan dijalankan scheduler. */
+export interface SkillJob {
+  id: string
+  /** Interval antar-jalan dalam milidetik. */
+  intervalMs: number
+  run(ctx: JobContext): Promise<void>
+}
+
 export interface Skill {
   /** id unik, mis. "whatsapp", "reminders". */
   id: string
@@ -236,6 +251,8 @@ export interface Skill {
   version?: string
   tools?: Tool[]
   commands?: SkillCommand[]
+  /** Job periodik (cron) milik skill. */
+  jobs?: SkillJob[]
   /** Tambahan system prompt yang aktif selama skill ini terpasang. */
   systemPrompt?: string
   setup?(api: SkillSetupApi): Promise<void> | void
