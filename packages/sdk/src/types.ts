@@ -142,6 +142,22 @@ export interface MemoryApi {
   forget(id: string): Promise<void>
 }
 
+/** Operasi WhatsApp lanjutan (opsional; bergantung pada transport). */
+export interface WhatsAppOps {
+  /** Beri reaksi emoji pada sebuah pesan. */
+  react(chatId: string, messageId: string, emoji: string, opts?: { fromMe?: boolean; accountId?: string }): Promise<void>
+  /** Sunting pesan teks yang pernah dikirim. */
+  editMessage(chatId: string, messageId: string, text: string, opts?: { accountId?: string }): Promise<void>
+  /** Hapus pesan (untuk semua orang bila memungkinkan). */
+  deleteMessage(chatId: string, messageId: string, opts?: { forEveryone?: boolean; accountId?: string }): Promise<void>
+  /** Setel status presence (sedang menulis, dsb.). */
+  setPresence(chatId: string, state: "composing" | "paused" | "available", opts?: { accountId?: string }): Promise<void>
+  /** Daftar chat yang dikenal store lokal. */
+  listChats(opts?: { accountId?: string }): Promise<Array<{ id: string; kind: string; name?: string }>>
+  /** Metadata grup (anggota, nama). */
+  getGroupInfo(chatId: string, opts?: { accountId?: string }): Promise<{ id: string; name?: string; participants: string[] } | undefined>
+}
+
 /** Kapabilitas runtime yang dapat dipanggil tool. */
 export interface RuntimeApi {
   /** ID akun WhatsApp yang sedang aktif. */
@@ -160,6 +176,8 @@ export interface RuntimeApi {
   markRead(chatId: string, messageIds: string[]): Promise<void>
   /** Memori jangka panjang. */
   readonly memory: MemoryApi
+  /** Operasi WhatsApp lanjutan (bila transport mendukung). */
+  readonly whatsapp?: WhatsAppOps
 }
 
 /** Penyimpanan kunci-nilai ber-namespace untuk sebuah skill. */

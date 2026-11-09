@@ -1,8 +1,10 @@
-import { readFile } from "node:fs/promises"
+import { mkdir, readFile, writeFile } from "node:fs/promises"
+import { join, resolve } from "node:path"
 import pino, { type Logger as PinoLogger } from "pino"
 import qrcode from "qrcode-terminal"
 import {
   DisconnectReason,
+  downloadMediaMessage,
   fetchLatestBaileysVersion,
   makeWASocket,
   type AnyMessageContent,
@@ -93,13 +95,49 @@ export class AccountRuntime {
     sock.ev.on("messages.upsert", ({ messages, type }) => {
       if (type !== "notify" && type !== "append") return
       for (const raw of messages) {
-        const normalized = normalizeBaileysMessage(this.id, raw as unknown as Parameters<typeof normalizeBaileysMessage>[1])
-        if (!normalized) continue
-        void Promise.resolve(this.opts.onInbound(normalized)).catch((error) =>
-          this.opts.logger.error({ error, account: this.id }, "onInbound gagal"),
-        )
+        void this.processIncoming(raw as WAMessage)
       }
     })
+  }
+
+  /** Menormalkan pesan, mengunduh media (bila ada), lalu meneruskannya ke handler. */
+  private async processIncoming(raw: WAMessage): Promise<void> {
+    const normalized = normalizeBaileysMessage(
+      this.id,
+      raw as unknown as Parameters<typeof normalizeBaileysMessage>[1],
+    )
+    if (!normalized) return
+
+    if (normalized.media && !normalized.media.localPath) {
+      try {
+        const localPath = await this.downloadMedia(raw, normalized.id, normalized.media.mime)
+        if (localPath) normalized.media.localPath = localPath
+      } catch (error) {
+        this.opts.logger.warn({ error, id: normalized.id }, "gagal mengunduh media")
+      }
+    }
+
+    try {
+      await this.opts.onInbound(normalized)
+    } catch (error) {
+      this.opts.logger.error({ error, account: this.id }, "onInbound gagal")
+    }
+  }
+
+  private async downloadMedia(raw: WAMessage, id: string, mime?: string): Promise<string | undefined> {
+    if (!this.sock) return undefined
+    const buffer = (await downloadMediaMessage(
+      raw,
+      "buffer",
+      {},
+      { logger: this.pinoLogger, reuploadRequest: this.sock.updateMediaMessage },
+    )) as Buffer
+    if (!buffer?.length) return undefined
+    const dir = resolve(this.opts.dataDir, "media")
+    await mkdir(dir, { recursive: true })
+    const path = join(dir, `${id}.${extensionForMime(mime)}`)
+    await writeFile(path, buffer)
+    return path
   }
 
   private handleConnectionUpdate(update: {
@@ -207,6 +245,49 @@ export class AccountRuntime {
     await this.sock.readMessages(messageIds.map((id) => ({ remoteJid: chatId, id, fromMe: false })))
   }
 
+  async react(chatId: string, messageId: string, emoji: string, opts?: { fromMe?: boolean }): Promise<void> {
+    if (!this.sock) return
+    await this.enqueueSend(() =>
+      this.sock!.sendMessage(chatId, {
+        react: { text: emoji, key: { remoteJid: chatId, id: messageId, fromMe: opts?.fromMe ?? false } },
+      }),
+    )
+  }
+
+  async editMessage(chatId: string, messageId: string, text: string): Promise<void> {
+    if (!this.sock) return
+    await this.enqueueSend(() =>
+      this.sock!.sendMessage(chatId, { text, edit: { remoteJid: chatId, id: messageId, fromMe: true } }),
+    )
+  }
+
+  async deleteMessage(chatId: string, messageId: string): Promise<void> {
+    if (!this.sock) return
+    await this.enqueueSend(() =>
+      this.sock!.sendMessage(chatId, { delete: { remoteJid: chatId, id: messageId, fromMe: true } }),
+    )
+  }
+
+  async setPresence(chatId: string, state: "composing" | "paused" | "available"): Promise<void> {
+    if (!this.sock) return
+    await this.sock.sendPresenceUpdate(state, chatId)
+  }
+
+  async getGroupMetadata(chatId: string): Promise<{ id: string; name?: string; participants: string[] } | undefined> {
+    if (!this.sock) return undefined
+    try {
+      const meta = await this.sock.groupMetadata(chatId)
+      return {
+        id: meta.id,
+        name: meta.subject ?? undefined,
+        participants: (meta.participants ?? []).map((p) => p.id),
+      }
+    } catch (error) {
+      this.opts.logger.warn({ error, chatId }, "gagal mengambil metadata grup")
+      return undefined
+    }
+  }
+
   stop(): void {
     this.stopped = true
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
@@ -218,4 +299,21 @@ export class AccountRuntime {
     this.sock = undefined
     this.setStatus("idle")
   }
+}
+
+function extensionForMime(mime?: string): string {
+  if (!mime) return "bin"
+  const map: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "video/mp4": "mp4",
+    "audio/ogg": "ogg",
+    "audio/mpeg": "mp3",
+    "audio/mp4": "m4a",
+    "application/pdf": "pdf",
+    "text/plain": "txt",
+  }
+  return map[mime] ?? mime.split("/")[1]?.split(";")[0] ?? "bin"
 }

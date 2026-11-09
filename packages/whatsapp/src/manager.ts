@@ -85,6 +85,41 @@ export class WhatsAppManager implements Transport {
     await runtime.markRead(chatId, messageIds)
   }
 
+  async react(
+    accountId: string,
+    chatId: string,
+    messageId: string,
+    emoji: string,
+    opts?: { fromMe?: boolean },
+  ): Promise<void> {
+    await this.require(accountId).react(chatId, messageId, emoji, opts)
+  }
+
+  async editMessage(accountId: string, chatId: string, messageId: string, text: string): Promise<void> {
+    await this.require(accountId).editMessage(chatId, messageId, text)
+  }
+
+  async deleteMessage(accountId: string, chatId: string, messageId: string): Promise<void> {
+    await this.require(accountId).deleteMessage(chatId, messageId)
+  }
+
+  async setPresence(accountId: string, chatId: string, state: "composing" | "paused" | "available"): Promise<void> {
+    await this.require(accountId).setPresence(chatId, state)
+  }
+
+  async getGroupMetadata(
+    accountId: string,
+    chatId: string,
+  ): Promise<{ id: string; name?: string; participants: string[] } | undefined> {
+    return this.runtimes.get(accountId)?.getGroupMetadata(chatId)
+  }
+
+  private require(accountId: string): AccountRuntime {
+    const runtime = this.runtimes.get(accountId)
+    if (!runtime) throw new Error(`Akun WhatsApp "${accountId}" tidak aktif`)
+    return runtime
+  }
+
   stopAll(): void {
     for (const runtime of this.runtimes.values()) runtime.stop()
     this.runtimes.clear()

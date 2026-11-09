@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import type { InboundMessage, Logger, RuntimeApi, SkillStore, ToolContext } from "@ibrax/sdk"
+import type { InboundMessage, Logger, RuntimeApi, SkillStore, ToolContext, WhatsAppOps } from "@ibrax/sdk"
 import { Agent, type AgentRunResult } from "./agent.ts"
 import type { AccountConfig, IbraConfig } from "./config.ts"
 import type { Store } from "./db.ts"
@@ -19,6 +19,14 @@ export interface Transport {
     opts?: { replyTo?: string },
   ): Promise<{ messageId: string; messageIds?: string[] }>
   markRead(accountId: string, chatId: string, messageIds: string[]): Promise<void>
+  react(accountId: string, chatId: string, messageId: string, emoji: string, opts?: { fromMe?: boolean }): Promise<void>
+  editMessage(accountId: string, chatId: string, messageId: string, text: string): Promise<void>
+  deleteMessage(accountId: string, chatId: string, messageId: string, opts?: { forEveryone?: boolean }): Promise<void>
+  setPresence(accountId: string, chatId: string, state: "composing" | "paused" | "available"): Promise<void>
+  getGroupMetadata(
+    accountId: string,
+    chatId: string,
+  ): Promise<{ id: string; name?: string; participants: string[] } | undefined>
 }
 
 export interface RuntimeOptions {
@@ -47,6 +55,34 @@ export class Runtime implements RuntimeApi {
   readonly memory: MemoryService
   readonly registry: SkillRegistry
   readonly agent: Agent
+
+  /** Operasi WhatsApp lanjutan yang dapat dipanggil tool. */
+  readonly whatsapp: WhatsAppOps = {
+    react: async (chatId, messageId, emoji, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      await this.transport?.react(accountId, chatId, messageId, emoji, { fromMe: opts?.fromMe })
+      this.store.audit({ actor: accountId, action: "wa.react", detail: { chatId, messageId, emoji } })
+    },
+    editMessage: async (chatId, messageId, text, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      await this.transport?.editMessage(accountId, chatId, messageId, text)
+    },
+    deleteMessage: async (chatId, messageId, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      await this.transport?.deleteMessage(accountId, chatId, messageId, { forEveryone: opts?.forEveryone })
+      this.store.audit({ actor: accountId, action: "wa.delete", detail: { chatId, messageId } })
+    },
+    setPresence: async (chatId, state, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      await this.transport?.setPresence(accountId, chatId, state)
+    },
+    listChats: async (opts) =>
+      this.store.listChats(opts?.accountId).map((c) => ({ id: c.id, kind: c.kind, name: c.name ?? undefined })),
+    getGroupInfo: async (chatId, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      return this.transport?.getGroupMetadata(accountId, chatId)
+    },
+  }
 
   private readonly config: IbraConfig
   private readonly transport?: Transport
@@ -237,6 +273,7 @@ export class Runtime implements RuntimeApi {
       fromMe: msg.fromMe,
       text: msg.text ?? "",
       timestamp: msg.timestamp,
+      mediaJson: msg.media ? JSON.stringify(msg.media) : undefined,
     })
 
     // Pesan dari diri sendiri: simpan sebagai konteks, jangan balas (cegah echo loop).

@@ -52,6 +52,27 @@ docker compose logs -f
 
 ---
 
+## Kemampuan WhatsApp
+
+Skill bawaan `whatsapp` mengekspos operasi ini sebagai tool (semuanya tunduk pada policy & tingkat otonomi):
+
+| Tool | Risiko | Fungsi |
+|---|---|---|
+| `wa_send_message` | medium | Kirim pesan teks (dengan kutipan opsional) |
+| `wa_send_media` | medium | Kirim gambar/video/audio/dokumen |
+| `wa_react` | low | Beri/hapus reaksi emoji |
+| `wa_edit_message` | medium | Sunting pesan yang pernah dikirim |
+| `wa_delete_message` | **high** | Hapus pesan (selalu butuh persetujuan) |
+| `wa_mark_read` | low | Tandai dibaca |
+| `wa_get_history` | low | Ambil riwayat chat |
+| `wa_set_presence` | low | Indikator menulis/tersedia |
+| `wa_list_chats` | low | Daftar chat |
+| `wa_group_info` | low | Info grup & peserta |
+
+Media masuk diunduh otomatis ke `<dataDir>/media/` agar dapat diproses lebih lanjut.
+
+---
+
 ## Dokumentasi
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — arsitektur, keputusan desain, dan alur.
