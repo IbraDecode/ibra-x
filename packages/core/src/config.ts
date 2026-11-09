@@ -31,6 +31,21 @@ export const ConfigSchema = z.object({
   maxTokensPerTurn: z.number().int().positive().default(8000),
   /** Kedalaman maksimum subagen bersarang (1 = subagen tidak boleh punya anak). */
   maxSubagentDepth: z.number().int().positive().default(1),
+  /** Pembatasan laju untuk mencegah spam/loop mahal. 0 = tanpa batas. */
+  limits: z
+    .object({
+      perSenderPerMinute: z.number().int().min(0).default(20),
+      perChatPerMinute: z.number().int().min(0).default(30),
+    })
+    .default({ perSenderPerMinute: 20, perChatPerMinute: 30 }),
+  /** Jam tenang: agen tidak membalas otomatis dalam rentang ini. */
+  quietHours: z
+    .object({
+      enabled: z.boolean().default(false),
+      from: z.string().default("22:00"),
+      to: z.string().default("07:00"),
+    })
+    .default({ enabled: false, from: "22:00", to: "07:00" }),
   autonomy: z.enum(["readonly", "suggest", "auto", "autonomous"]).default("suggest"),
   allowlist: z.array(z.string()).default([]),
   ownerNumbers: z.array(z.string()).default([]),
@@ -115,6 +130,16 @@ export function applyEnv(raw: Record<string, unknown>, env: NodeJS.ProcessEnv = 
   }
   if (env.IBRA_DESCRIBE_IMAGES !== undefined) {
     ;(out as any).media = { ...((out as any).media ?? {}), describeImages: env.IBRA_DESCRIBE_IMAGES === "true" }
+  }
+  if (env.IBRA_QUIET_HOURS) {
+    const [from, to] = env.IBRA_QUIET_HOURS.split("-").map((s) => s.trim())
+    if (from && to) (out as any).quietHours = { ...((out as any).quietHours ?? {}), enabled: true, from, to }
+  }
+  if (env.IBRA_RATE_PER_SENDER) {
+    ;(out as any).limits = { ...((out as any).limits ?? {}), perSenderPerMinute: Number(env.IBRA_RATE_PER_SENDER) }
+  }
+  if (env.IBRA_RATE_PER_CHAT) {
+    ;(out as any).limits = { ...((out as any).limits ?? {}), perChatPerMinute: Number(env.IBRA_RATE_PER_CHAT) }
   }
   return out
 }

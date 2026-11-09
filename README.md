@@ -112,6 +112,15 @@ Setelah `ibrax start`, buka **http://127.0.0.1:8787** — dashboard satu halaman
 
 ---
 
+## Keamanan & batas
+
+- **Allowlist pengirim** — `IBRA_ALLOWLIST`; kosong = mode owner-only.
+- **Otonomi berjenjang** — `readonly` → `suggest` → `auto` → `autonomous`.
+- **Risiko per tool** — `low`/`medium`/`high`; `high` selalu butuh persetujuan.
+- **Rate limit** — `IBRA_RATE_PER_SENDER`, `IBRA_RATE_PER_CHAT` (per menit, 0 = mati).
+- **Jam tenang** — `IBRA_QUIET_HOURS` (mis. `22:00-07:00`) menahan balasan otomatis.
+- **Isolasi kanal** — konten pesan diperlakukan sebagai data, bukan instruksi.
+
 ## Dokumentasi
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — arsitektur, keputusan desain, dan alur.

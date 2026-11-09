@@ -7,6 +7,7 @@ import type { EventBus } from "./events.ts"
 import type { ImageDescriber, Transcriber } from "./media.ts"
 import { MemoryService } from "./memory.ts"
 import { Policy } from "./policy.ts"
+import { SlidingWindowLimiter, inQuietHours } from "./rate-limit.ts"
 import { SessionManager } from "./session.ts"
 import type { SkillRegistry } from "./skills.ts"
 import type { Provider } from "@ibrax/sdk"
@@ -122,6 +123,8 @@ export class Runtime implements RuntimeApi {
   private readonly transport?: Transport
   private readonly transcriber?: Transcriber
   private readonly imageDescriber?: ImageDescriber
+  private readonly senderLimiter: SlidingWindowLimiter
+  private readonly chatLimiter: SlidingWindowLimiter
   private currentAccountId: string
   private processing = false
 
@@ -137,6 +140,8 @@ export class Runtime implements RuntimeApi {
     this.transport = opts.transport
     this.transcriber = opts.transcriber
     this.imageDescriber = opts.imageDescriber
+    this.senderLimiter = new SlidingWindowLimiter(60_000, opts.config.limits.perSenderPerMinute)
+    this.chatLimiter = new SlidingWindowLimiter(60_000, opts.config.limits.perChatPerMinute)
     this.currentAccountId = opts.config.accounts[0]?.id ?? "default"
 
     this.agent = new Agent({
@@ -351,6 +356,24 @@ export class Runtime implements RuntimeApi {
     const decision = this.policy.canTrigger(msg.senderId, { respondTo: account.respondTo })
     if (decision.effect !== "allow") {
       this.logger.debug({ sender: msg.senderId, reason: decision.reason }, "pengirim tidak diizinkan memicu agen")
+      return
+    }
+
+    // Jam tenang: agen tidak membalas otomatis.
+    if (inQuietHours(this.config.quietHours)) {
+      this.store.audit({ actor: msg.accountId, action: "skip.quietHours", detail: { chatId: msg.chatId } })
+      this.logger.debug({ chat: msg.chatId }, "jam tenang: agen tidak dijalankan")
+      return
+    }
+
+    // Batas laju per pengirim dan per chat.
+    if (!this.senderLimiter.allow(msg.senderId) || !this.chatLimiter.allow(msg.chatId)) {
+      this.store.audit({
+        actor: msg.accountId,
+        action: "skip.rateLimit",
+        detail: { chatId: msg.chatId, sender: msg.senderId },
+      })
+      this.logger.warn({ chat: msg.chatId, sender: msg.senderId }, "batas laju terlampaui: pesan dilewati")
       return
     }
 
