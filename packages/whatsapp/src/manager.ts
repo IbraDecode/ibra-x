@@ -71,7 +71,7 @@ export class WhatsAppManager implements Transport {
   async sendMessage(
     accountId: string,
     chatId: string,
-    payload: { text: string } | { mediaPath: string; mime: string; caption?: string },
+    payload: { text: string } | { mediaPath: string; mime: string; caption?: string; ptt?: boolean },
     opts?: { replyTo?: string },
   ): Promise<{ messageId: string; messageIds?: string[] }> {
     const runtime = this.runtimes.get(accountId)

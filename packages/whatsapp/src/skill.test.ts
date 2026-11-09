@@ -8,6 +8,7 @@ test("skill whatsapp mengekspos tool inti dengan tingkat risiko yang benar", () 
   const expected = [
     "wa_send_message",
     "wa_send_media",
+    "wa_send_voice",
     "wa_mark_read",
     "wa_get_history",
     "wa_react",

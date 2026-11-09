@@ -4,6 +4,14 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.15.0] — 2026-11-09
+
+### Ditambahkan
+- **Balasan suara (TTS)**: `createSpeaker` (endpoint OpenAI-compatible `/audio/speech`),
+  `RuntimeApi.speech`, dan tool `wa_send_voice` — agen dapat membalas dengan voice note.
+- `config.media.speak`/`ttsModel`/`ttsVoice`; env `IBRA_SPEAK`.
+- Dukungan `ptt` pada pengiriman audio.
+
 ## [0.14.0] — 2026-11-09
 
 ### Ditambahkan

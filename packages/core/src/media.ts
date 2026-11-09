@@ -9,6 +9,11 @@ export interface ImageDescriber {
   describe(path: string, mime?: string): Promise<string>
 }
 
+/** Sintesis suara; mengembalikan buffer audio. */
+export interface Speaker {
+  synthesize(text: string): Promise<Buffer>
+}
+
 export interface CreateTranscriberOptions {
   baseUrl: string
   apiKey?: string
@@ -101,6 +106,46 @@ export function createImageDescriber(opts: CreateImageDescriberOptions): ImageDe
       if (!res.ok) throw new Error(`deskripsi gambar gagal (HTTP ${res.status})`)
       const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
       return json.choices?.[0]?.message?.content ?? ""
+    },
+  }
+}
+
+export interface CreateSpeakerOptions {
+  baseUrl: string
+  apiKey?: string
+  model?: string
+  voice?: string
+  format?: "mp3" | "opus" | "aac" | "flac" | "wav"
+  fetchImpl?: typeof fetch
+}
+
+/**
+ * Sintesis suara memakai endpoint OpenAI-compatible `POST /audio/speech`.
+ * Mengembalikan buffer audio (mp3 secara default) untuk dikirim sebagai voice note.
+ */
+export function createSpeaker(opts: CreateSpeakerOptions): Speaker {
+  const doFetch = opts.fetchImpl ?? fetch
+  const base = opts.baseUrl.replace(/\/$/, "")
+  const format = opts.format ?? "mp3"
+
+  return {
+    async synthesize(text: string): Promise<Buffer> {
+      const headers: Record<string, string> = { "content-type": "application/json" }
+      if (opts.apiKey) headers.authorization = `Bearer ${opts.apiKey}`
+
+      const res = await doFetch(`${base}/audio/speech`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: opts.model ?? "gpt-4o-mini-tts",
+          input: text,
+          voice: opts.voice ?? "alloy",
+          format,
+          response_format: format,
+        }),
+      })
+      if (!res.ok) throw new Error(`sintesis suara gagal (HTTP ${res.status})`)
+      return Buffer.from(await res.arrayBuffer())
     },
   }
 }

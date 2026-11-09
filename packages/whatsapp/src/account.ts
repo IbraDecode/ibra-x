@@ -207,7 +207,7 @@ export class AccountRuntime {
 
   async sendMessage(
     chatId: string,
-    payload: { text: string } | { mediaPath: string; mime: string; caption?: string },
+    payload: { text: string } | { mediaPath: string; mime: string; caption?: string; ptt?: boolean },
     _opts?: { replyTo?: string },
   ): Promise<{ messageId: string; messageIds?: string[] }> {
     if (!this.sock) throw new Error(`Akun ${this.id}: socket belum siap`)
@@ -228,7 +228,7 @@ export class AccountRuntime {
   }
 
   private async buildContent(
-    payload: { text: string } | { mediaPath: string; mime: string; caption?: string },
+    payload: { text: string } | { mediaPath: string; mime: string; caption?: string; ptt?: boolean },
   ): Promise<AnyMessageContent> {
     if ("text" in payload) return { text: payload.text }
 
@@ -236,7 +236,7 @@ export class AccountRuntime {
     const mime = payload.mime
     if (mime.startsWith("image/")) return { image: buffer, caption: payload.caption, mimetype: mime }
     if (mime.startsWith("video/")) return { video: buffer, caption: payload.caption, mimetype: mime }
-    if (mime.startsWith("audio/")) return { audio: buffer, mimetype: mime, ptt: false }
+    if (mime.startsWith("audio/")) return { audio: buffer, mimetype: mime, ptt: payload.ptt ?? false }
     return { document: buffer, mimetype: mime, caption: payload.caption, fileName: "file" }
   }
 

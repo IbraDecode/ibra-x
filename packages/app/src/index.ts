@@ -7,6 +7,7 @@ import {
   coreMemorySkill,
   createImageDescriber,
   createLogger,
+  createSpeaker,
   createTranscriber,
   ensureDataDir,
   loadMcpSkills,
@@ -17,6 +18,7 @@ import {
   type IbraConfig,
   type ImageDescriber,
   type SkillRegistry,
+  type Speaker,
   type Transcriber,
 } from "@ibrax/core"
 import type { Logger, SkillStore } from "@ibrax/sdk"
@@ -125,6 +127,23 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
     }
   }
 
+  // Sintesis suara (opsional) untuk balasan voice note.
+  let speaker: Speaker | undefined
+  if (config.media.speak) {
+    const preset = findPreset(config.provider)
+    const apiKey = preset?.apiKeyEnv ? process.env[preset.apiKeyEnv] : undefined
+    if (preset) {
+      speaker = createSpeaker({
+        baseUrl: preset.baseUrl,
+        apiKey,
+        model: config.media.ttsModel,
+        voice: config.media.ttsVoice,
+      })
+      logger.info({ model: config.media.ttsModel }, "sintesis suara aktif")
+    }
+  }
+  const mediaDir = resolve(dataDir, "media")
+
   const runtime = new Runtime({
     config,
     store,
@@ -136,6 +155,8 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
     autoApprove: opts.autoApprove,
     transcriber,
     imageDescriber,
+    speaker,
+    mediaDir,
   })
 
   manager.setInboundHandler((msg) => runtime.handleInbound(msg))

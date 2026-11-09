@@ -73,6 +73,10 @@ export const ConfigSchema = z.object({
       describeImages: z.boolean().default(false),
       /** Model vision; default memakai config.model aktif. */
       visionModel: z.string().optional(),
+      /** Balasan suara (text-to-speech) untuk tool wa_send_voice. */
+      speak: z.boolean().default(false),
+      ttsModel: z.string().default("gpt-4o-mini-tts"),
+      ttsVoice: z.string().default("alloy"),
       maxAudioBytes: z.number().int().positive().default(25 * 1024 * 1024),
       maxImageBytes: z.number().int().positive().default(10 * 1024 * 1024),
     })
@@ -80,6 +84,9 @@ export const ConfigSchema = z.object({
       transcribe: false,
       transcribeModel: "whisper-1",
       describeImages: false,
+      speak: false,
+      ttsModel: "gpt-4o-mini-tts",
+      ttsVoice: "alloy",
       maxAudioBytes: 25 * 1024 * 1024,
       maxImageBytes: 10 * 1024 * 1024,
     }),
@@ -130,6 +137,9 @@ export function applyEnv(raw: Record<string, unknown>, env: NodeJS.ProcessEnv = 
   }
   if (env.IBRA_DESCRIBE_IMAGES !== undefined) {
     ;(out as any).media = { ...((out as any).media ?? {}), describeImages: env.IBRA_DESCRIBE_IMAGES === "true" }
+  }
+  if (env.IBRA_SPEAK !== undefined) {
+    ;(out as any).media = { ...((out as any).media ?? {}), speak: env.IBRA_SPEAK === "true" }
   }
   if (env.IBRA_QUIET_HOURS) {
     const [from, to] = env.IBRA_QUIET_HOURS.split("-").map((s) => s.trim())

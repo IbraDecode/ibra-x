@@ -104,6 +104,7 @@ Skill bawaan `whatsapp` mengekspos operasi ini sebagai tool (semuanya tunduk pad
 |---|---|---|
 | `wa_send_message` | medium | Kirim pesan teks (dengan kutipan opsional) |
 | `wa_send_media` | medium | Kirim gambar/video/audio/dokumen |
+| `wa_send_voice` | medium | Balas dengan pesan suara (TTS) |
 | `wa_react` | low | Beri/hapus reaksi emoji |
 | `wa_edit_message` | medium | Sunting pesan yang pernah dikirim |
 | `wa_delete_message` | **high** | Hapus pesan (selalu butuh persetujuan) |
@@ -125,11 +126,12 @@ Skill bawaan `whatsapp` mengekspos operasi ini sebagai tool (semuanya tunduk pad
 | `wa_profile_picture` | low | URL foto profil |
 | `wa_block` | **high** | Blokir/buka blokir (butuh persetujuan) |
 
-Media masuk diunduh otomatis ke `<dataDir>/media/`. Agen dapat **memahami media**:
+Media masuk diunduh otomatis ke `<dataDir>/media/`. Agen dapat **memahami & menghasilkan media**:
 - `IBRA_TRANSCRIBE=true` — transkripsikan pesan suara otomatis;
-- `IBRA_DESCRIBE_IMAGES=true` — deskripsikan gambar masuk (butuh model multimodal).
+- `IBRA_DESCRIBE_IMAGES=true` — deskripsikan gambar masuk (butuh model multimodal);
+- `IBRA_SPEAK=true` — aktifkan tool `wa_send_voice` untuk **membalas dengan voice note** (TTS).
 
-Keduanya melampirkan hasil ke konteks agen.
+Semuanya melampirkan/menghasilkan konten yang dipakai agen.
 
 ## Otomasi (job periodik)
 

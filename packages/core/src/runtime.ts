@@ -1,10 +1,21 @@
 import { randomUUID } from "node:crypto"
-import type { InboundMessage, Logger, RuntimeApi, SkillStore, SubagentApi, ToolContext, WhatsAppOps } from "@ibrax/sdk"
+import { mkdir, writeFile } from "node:fs/promises"
+import { join, resolve } from "node:path"
+import type {
+  InboundMessage,
+  Logger,
+  RuntimeApi,
+  SkillStore,
+  SpeechApi,
+  SubagentApi,
+  ToolContext,
+  WhatsAppOps,
+} from "@ibrax/sdk"
 import { Agent, type AgentRunResult } from "./agent.ts"
 import type { AccountConfig, IbraConfig } from "./config.ts"
 import type { Store } from "./db.ts"
 import type { EventBus } from "./events.ts"
-import type { ImageDescriber, Transcriber } from "./media.ts"
+import type { ImageDescriber, Speaker, Transcriber } from "./media.ts"
 import { MemoryService } from "./memory.ts"
 import { Policy } from "./policy.ts"
 import { SlidingWindowLimiter, inQuietHours } from "./rate-limit.ts"
@@ -17,7 +28,7 @@ export interface Transport {
   sendMessage(
     accountId: string,
     chatId: string,
-    payload: { text: string } | { mediaPath: string; mime: string; caption?: string },
+    payload: { text: string } | { mediaPath: string; mime: string; caption?: string; ptt?: boolean },
     opts?: { replyTo?: string },
   ): Promise<{ messageId: string; messageIds?: string[] }>
   markRead(accountId: string, chatId: string, messageIds: string[]): Promise<void>
@@ -71,6 +82,10 @@ export interface RuntimeOptions {
   transcriber?: Transcriber
   /** Deskripsi gambar otomatis untuk pesan gambar masuk. */
   imageDescriber?: ImageDescriber
+  /** Sintesis suara untuk balasan voice note. */
+  speaker?: Speaker
+  /** Direktori media (tempat menyimpan hasil TTS). */
+  mediaDir?: string
 }
 
 /**
@@ -116,6 +131,22 @@ export class Runtime implements RuntimeApi {
   }
 
   private subagentDepth = 0
+
+  /** Sintesis suara (bila speaker dikonfigurasi). Mengembalikan path berkas audio. */
+  get speech(): SpeechApi | undefined {
+    if (!this.speaker || !this.mediaDir) return undefined
+    const speaker = this.speaker
+    const dir = resolve(this.mediaDir)
+    return {
+      synthesize: async (text: string) => {
+        const buffer = await speaker.synthesize(text)
+        await mkdir(dir, { recursive: true })
+        const path = join(dir, `tts-${randomUUID()}.mp3`)
+        await writeFile(path, buffer)
+        return path
+      },
+    }
+  }
 
   /** Operasi WhatsApp lanjutan yang dapat dipanggil tool. */
   readonly whatsapp: WhatsAppOps = {
@@ -191,6 +222,8 @@ export class Runtime implements RuntimeApi {
   private readonly transport?: Transport
   private readonly transcriber?: Transcriber
   private readonly imageDescriber?: ImageDescriber
+  private readonly speaker?: Speaker
+  private readonly mediaDir?: string
   private readonly senderLimiter: SlidingWindowLimiter
   private readonly chatLimiter: SlidingWindowLimiter
   private currentAccountId: string
@@ -208,6 +241,8 @@ export class Runtime implements RuntimeApi {
     this.transport = opts.transport
     this.transcriber = opts.transcriber
     this.imageDescriber = opts.imageDescriber
+    this.speaker = opts.speaker
+    this.mediaDir = opts.mediaDir
     this.senderLimiter = new SlidingWindowLimiter(60_000, opts.config.limits.perSenderPerMinute)
     this.chatLimiter = new SlidingWindowLimiter(60_000, opts.config.limits.perChatPerMinute)
     this.currentAccountId = opts.config.accounts[0]?.id ?? "default"
@@ -245,7 +280,7 @@ export class Runtime implements RuntimeApi {
 
   async sendMessage(
     chatId: string,
-    payload: { text: string } | { mediaPath: string; mime: string; caption?: string },
+    payload: { text: string } | { mediaPath: string; mime: string; caption?: string; ptt?: boolean },
     opts?: { replyTo?: string; accountId?: string },
   ): Promise<{ messageId: string; messageIds?: string[] }> {
     const accountId = opts?.accountId ?? this.currentAccountId

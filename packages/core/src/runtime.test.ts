@@ -83,7 +83,7 @@ class FakeTransport implements Transport {
   async sendMessage(
     accountId: string,
     chatId: string,
-    payload: { text: string } | { mediaPath: string; mime: string; caption?: string },
+    payload: { text: string } | { mediaPath: string; mime: string; caption?: string; ptt?: boolean },
   ): Promise<{ messageId: string }> {
     this.sent.push({ accountId, chatId, text: "text" in payload ? payload.text : (payload.caption ?? "[media]") })
     return { messageId: "m" }

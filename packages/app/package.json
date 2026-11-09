@@ -1,6 +1,6 @@
 {
   "name": "@ibrax/app",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Komposisi aplikasi Ibra X: menyatukan config, provider, memori, skill, dan transport WhatsApp.",
   "license": "MIT",
   "type": "module",

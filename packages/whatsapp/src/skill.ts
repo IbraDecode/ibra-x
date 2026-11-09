@@ -29,7 +29,8 @@ export const whatsappSkill = defineSkill({
     "`wa_set_presence` untuk indikator menulis, `wa_list_chats` dan `wa_group_info` untuk informasi. " +
     "Administrasi grup tersedia (`wa_group_add`/`wa_group_remove`/`wa_group_promote`/`wa_group_demote`, " +
     "`wa_group_invite`, `wa_group_setting`), serta `wa_send_poll`, `wa_send_location`, `wa_check_number`, " +
-    "`wa_profile_picture`, dan `wa_block`. Selalu konfirmasi bila meragukan.",
+    "`wa_profile_picture`, dan `wa_block`. Gunakan `wa_send_voice` untuk membalas dengan pesan suara. " +
+    "Selalu konfirmasi bila meragukan.",
   tools: [
     defineTool<{ text: string; chatId?: string; replyTo?: string }, { messageId: string }>({
       name: "wa_send_message",
@@ -73,6 +74,29 @@ export const whatsappSkill = defineSkill({
         const res = await ctx.runtime.sendMessage(
           chatId,
           { mediaPath: input.mediaPath, mime: input.mime, caption: input.caption },
+          { accountId: ctx.accountId },
+        )
+        return { messageId: res.messageId }
+      },
+    }),
+    defineTool<{ text: string; chatId?: string }, { messageId: string }>({
+      name: "wa_send_voice",
+      description: "Ubah teks menjadi pesan suara (voice note) dan kirim ke chat.",
+      parameters: {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "Teks yang diucapkan." },
+          chatId: { type: "string", description: "JID tujuan (opsional; default chat saat ini)." },
+        },
+        required: ["text"],
+      },
+      risk: "medium",
+      async execute(input, ctx) {
+        if (!ctx.runtime.speech) throw new Error("Sintesis suara tidak diaktifkan.")
+        const path = await ctx.runtime.speech.synthesize(input.text)
+        const res = await ctx.runtime.sendMessage(
+          resolveChatId(ctx, input.chatId),
+          { mediaPath: path, mime: "audio/mpeg", ptt: true },
           { accountId: ctx.accountId },
         )
         return { messageId: res.messageId }

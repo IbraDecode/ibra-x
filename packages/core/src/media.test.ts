@@ -3,7 +3,7 @@ import { mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { test } from "node:test"
-import { createImageDescriber, createTranscriber } from "./media.ts"
+import { createImageDescriber, createSpeaker, createTranscriber } from "./media.ts"
 
 async function tempFile(bytes: number): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "ibrax-media-"))
@@ -91,4 +91,26 @@ test("batas ukuran gambar ditegakkan", async () => {
     fetchImpl: (async () => new Response("{}")) as typeof fetch,
   })
   await assert.rejects(() => describer.describe(file), /melebihi batas/)
+})
+
+test("sintesis suara mengirim permintaan dan mengembalikan buffer", async () => {
+  let body: any
+  const fakeFetch = (async (_input: string | URL, init?: RequestInit) => {
+    body = JSON.parse(String(init?.body))
+    return new Response(new Uint8Array([1, 2, 3, 4]), { status: 200 })
+  }) as typeof fetch
+
+  const speaker = createSpeaker({
+    baseUrl: "https://api.contoh/v1/",
+    apiKey: "k",
+    model: "tts-1",
+    voice: "nova",
+    fetchImpl: fakeFetch,
+  })
+  const buffer = await speaker.synthesize("halo dunia")
+
+  assert.equal(buffer.length, 4)
+  assert.equal(body.voice, "nova")
+  assert.equal(body.input, "halo dunia")
+  assert.equal(body.model, "tts-1")
 })

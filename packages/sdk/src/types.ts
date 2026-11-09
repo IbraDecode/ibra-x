@@ -202,6 +202,11 @@ export interface SubagentApi {
   run(task: string, opts?: { model?: string; role?: string }): Promise<{ text: string; reason: string; steps: number }>
 }
 
+/** Sintesis suara (text-to-speech). Mengembalikan path berkas audio lokal. */
+export interface SpeechApi {
+  synthesize(text: string): Promise<string>
+}
+
 /** Kapabilitas runtime yang dapat dipanggil tool. */
 export interface RuntimeApi {
   /** ID akun WhatsApp yang sedang aktif. */
@@ -209,7 +214,7 @@ export interface RuntimeApi {
   /** Kirim pesan WhatsApp ke sebuah chat. */
   sendMessage(
     chatId: string,
-    payload: { text: string } | { mediaPath: string; mime: string; caption?: string },
+    payload: { text: string } | { mediaPath: string; mime: string; caption?: string; ptt?: boolean },
     opts?: { replyTo?: string; accountId?: string },
   ): Promise<{ messageId: string; messageIds?: string[] }>
   /** Ambil riwayat pesan sebuah chat dari store lokal. */
@@ -224,6 +229,8 @@ export interface RuntimeApi {
   readonly whatsapp?: WhatsAppOps
   /** Delegasi ke sub-agen (bila diaktifkan). */
   readonly subagent?: SubagentApi
+  /** Sintesis suara (bila diaktifkan). */
+  readonly speech?: SpeechApi
 }
 
 /** Penyimpanan kunci-nilai ber-namespace untuk sebuah skill. */

@@ -1,6 +1,6 @@
 {
   "name": "@ibrax/server",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "HTTP API + SSE untuk Ibra X (status, chat, memori, skill, event).",
   "license": "MIT",
   "type": "module",
