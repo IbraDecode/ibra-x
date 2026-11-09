@@ -194,6 +194,18 @@ export interface WhatsAppOps {
   profilePictureUrl(chatId: string, opts?: { accountId?: string }): Promise<string | undefined>
   /** Blokir/buka blokir kontak. */
   blockStatus(chatId: string, block: boolean, opts?: { accountId?: string }): Promise<void>
+  /** Ubah state chat (arsip, pin, mute, tandai belum dibaca). */
+  chatModify(
+    chatId: string,
+    action: "archive" | "unarchive" | "pin" | "unpin" | "mute" | "unmute" | "markUnread",
+    opts?: { accountId?: string },
+  ): Promise<void>
+  /** Kirim kontak (vCard). */
+  sendContact(
+    chatId: string,
+    contact: { displayName: string; vcard: string },
+    opts?: { accountId?: string },
+  ): Promise<void>
 }
 
 /** Delegasi ke sub-agen dengan konteks terisolasi. */

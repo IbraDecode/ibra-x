@@ -67,7 +67,7 @@ Or with Docker: `docker compose up -d`.
 | Skill | What it does |
 |---|---|
 | `core-memory` | Long-term memory: remember/search/forget facts (shared across numbers). |
-| `whatsapp` | 23 WhatsApp tools (send text/media, voice notes, reactions, edit/delete, presence, history, group admin, polls, location, number check, profile, block). |
+| `whatsapp` | 28 WhatsApp tools (send text/media/voice, reactions, edit/delete, presence, history, group admin, polls, location, contacts, archive/pin/mute, block). |
 | `subagents` | Delegate to context-isolated subagents. |
 | `autoreply` | Rule-based auto-replies (keyword/regex) evaluated **before** the LLM. |
 | `handoff` | Human handoff — pauses auto-replies per chat (with auto-escalation). |
@@ -106,6 +106,11 @@ Or with Docker: `docker compose up -d`.
 | `wa_send_poll` | medium | Send a poll |
 | `wa_profile_picture` | low | Profile picture URL |
 | `wa_block` | **high** | Block/unblock a contact (needs approval) |
+| `wa_archive` | low | Archive a chat |
+| `wa_pin` | low | Pin/unpin a chat |
+| `wa_mute` | low | Mute/unmute a chat |
+| `wa_mark_unread` | low | Mark unread |
+| `wa_send_contact` | medium | Send a contact (vCard) |
 
 ## Media Understanding
 

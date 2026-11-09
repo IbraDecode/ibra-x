@@ -29,6 +29,11 @@ test("skill whatsapp mengekspos tool inti dengan tingkat risiko yang benar", () 
     "wa_send_poll",
     "wa_profile_picture",
     "wa_block",
+    "wa_archive",
+    "wa_pin",
+    "wa_mute",
+    "wa_mark_unread",
+    "wa_send_contact",
   ]
   for (const name of expected) {
     assert.ok(tools.has(name), `tool ${name} harus ada`)

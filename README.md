@@ -89,7 +89,7 @@ Tool MCP muncul otomatis sebagai skill dengan prefiks `<id>__`. Lihat [`docs/SKI
 | Skill | Isi |
 |---|---|
 | `core-memory` | Memori jangka panjang: simpan/cari/hapus fakta |
-| `whatsapp` | 10 tool WhatsApp (kirim teks/media, reaksi, sunting, hapus, presence, riwayat, grup) |
+| `whatsapp` | 28 tool WhatsApp (kirim teks/media/suara, reaksi, sunting/hapus, presence, riwayat, admin grup, poll, lokasi, kontak, arsip/pin/mute, blokir) |
 | `subagents` | Delegasi ke subagen berkonteks terisolasi |
 | `autoreply` | Balasan otomatis berbasis aturan (hook, **tanpa** memanggil LLM) |
 | `handoff` | Handoff ke manusia — tahan balasan otomatis per chat (dengan eskalasi otomatis) |
@@ -130,6 +130,11 @@ Skill bawaan `whatsapp` mengekspos operasi ini sebagai tool (semuanya tunduk pad
 | `wa_send_poll` | medium | Kirim poll |
 | `wa_profile_picture` | low | URL foto profil |
 | `wa_block` | **high** | Blokir/buka blokir (butuh persetujuan) |
+| `wa_archive` | low | Arsipkan chat |
+| `wa_pin` | low | Sematkan/lepas sematan chat |
+| `wa_mute` | low | Bisukan/bunyikan chat |
+| `wa_mark_unread` | low | Tandai belum dibaca |
+| `wa_send_contact` | medium | Kirim kontak (vCard) |
 
 Media masuk diunduh otomatis ke `<dataDir>/media/`. Agen dapat **memahami & menghasilkan media**:
 - `IBRA_TRANSCRIBE=true` — transkripsikan pesan suara otomatis;

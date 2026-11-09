@@ -67,6 +67,12 @@ export interface Transport {
   ): Promise<void>
   profilePictureUrl(accountId: string, chatId: string): Promise<string | undefined>
   blockStatus(accountId: string, chatId: string, block: boolean): Promise<void>
+  chatModify(
+    accountId: string,
+    chatId: string,
+    action: "archive" | "unarchive" | "pin" | "unpin" | "mute" | "unmute" | "markUnread",
+  ): Promise<void>
+  sendContact(accountId: string, chatId: string, contact: { displayName: string; vcard: string }): Promise<void>
 }
 
 export interface RuntimeOptions {
@@ -251,6 +257,15 @@ export class Runtime implements RuntimeApi {
       const accountId = opts?.accountId ?? this.currentAccountId
       await this.transport?.blockStatus(accountId, chatId, block)
       this.store.audit({ actor: accountId, action: block ? "wa.block" : "wa.unblock", detail: { chatId } })
+    },
+    chatModify: async (chatId, action, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      await this.transport?.chatModify(accountId, chatId, action)
+      this.store.audit({ actor: accountId, action: `wa.chat.${action}`, detail: { chatId } })
+    },
+    sendContact: async (chatId, contact, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      await this.transport?.sendContact(accountId, chatId, contact)
     },
   }
 

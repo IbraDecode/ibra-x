@@ -459,5 +459,91 @@ export const whatsappSkill = defineSkill({
         return { ok: true as const }
       },
     }),
+    defineTool<{ chatId?: string }, { ok: true }>({
+      name: "wa_archive",
+      description: "Arsipkan sebuah chat.",
+      parameters: {
+        type: "object",
+        properties: { chatId: { type: "string", description: "JID chat (opsional)." } },
+      },
+      risk: "low",
+      async execute(input, ctx) {
+        await ops(ctx).chatModify(resolveChatId(ctx, input.chatId), "archive", { accountId: ctx.accountId })
+        return { ok: true as const }
+      },
+    }),
+    defineTool<{ pin: boolean; chatId?: string }, { ok: true }>({
+      name: "wa_pin",
+      description: "Sematkan atau lepaskan sematan sebuah chat.",
+      parameters: {
+        type: "object",
+        properties: {
+          pin: { type: "boolean", description: "true untuk sematkan, false untuk lepas." },
+          chatId: { type: "string", description: "JID chat (opsional)." },
+        },
+        required: ["pin"],
+      },
+      risk: "low",
+      async execute(input, ctx) {
+        await ops(ctx).chatModify(resolveChatId(ctx, input.chatId), input.pin ? "pin" : "unpin", {
+          accountId: ctx.accountId,
+        })
+        return { ok: true as const }
+      },
+    }),
+    defineTool<{ mute: boolean; chatId?: string }, { ok: true }>({
+      name: "wa_mute",
+      description: "Bisukan atau bunyikan notifikasi sebuah chat.",
+      parameters: {
+        type: "object",
+        properties: {
+          mute: { type: "boolean", description: "true untuk bisukan, false untuk bunyikan." },
+          chatId: { type: "string", description: "JID chat (opsional)." },
+        },
+        required: ["mute"],
+      },
+      risk: "low",
+      async execute(input, ctx) {
+        await ops(ctx).chatModify(resolveChatId(ctx, input.chatId), input.mute ? "mute" : "unmute", {
+          accountId: ctx.accountId,
+        })
+        return { ok: true as const }
+      },
+    }),
+    defineTool<{ chatId?: string }, { ok: true }>({
+      name: "wa_mark_unread",
+      description: "Tandai sebuah chat sebagai belum dibaca.",
+      parameters: {
+        type: "object",
+        properties: { chatId: { type: "string", description: "JID chat (opsional)." } },
+      },
+      risk: "low",
+      async execute(input, ctx) {
+        await ops(ctx).chatModify(resolveChatId(ctx, input.chatId), "markUnread", { accountId: ctx.accountId })
+        return { ok: true as const }
+      },
+    }),
+    defineTool<{ displayName: string; vcard: string; chatId?: string }, { ok: true }>({
+      name: "wa_send_contact",
+      description: "Kirim kontak (vCard) ke sebuah chat.",
+      parameters: {
+        type: "object",
+        properties: {
+          displayName: { type: "string", description: "Nama tampilan kontak." },
+          vcard: { type: "string", description: "Isi vCard, mis. 'BEGIN:VCARD...END:VCARD'." },
+          chatId: { type: "string", description: "JID tujuan (opsional)." },
+        },
+        required: ["displayName", "vcard"],
+      },
+      risk: "medium",
+      async execute(input, ctx) {
+        await ops(ctx).sendContact(
+          resolveChatId(ctx, input.chatId),
+          { displayName: input.displayName, vcard: input.vcard },
+          { accountId: ctx.accountId },
+        )
+        return { ok: true as const }
+      },
+    }),
   ],
 })

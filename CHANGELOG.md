@@ -4,6 +4,17 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.20.0] — 2026-11-09
+
+### Ditambahkan
+- Tool WhatsApp: `wa_archive`, `wa_pin`, `wa_mute`, `wa_mark_unread` (via `chatModify`) dan
+  `wa_send_contact` (vCard). Total **28 tool WhatsApp**.
+- `WhatsAppOps.chatModify` / `WhatsAppOps.sendContact` dan implementasi Baileys-nya.
+
+### Catatan
+- Dukungan **Postgres** ditunda: memerlukan refactor `Store` menjadi async. Dijadwalkan terpisah
+  agar tidak mengganggu stabilitas rilis saat ini.
+
 ## [0.19.0] — 2026-11-09
 
 ### Ditambahkan

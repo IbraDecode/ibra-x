@@ -113,6 +113,8 @@ class FakeTransport implements Transport {
     return undefined
   }
   async blockStatus(): Promise<void> {}
+  async chatModify(): Promise<void> {}
+  async sendContact(): Promise<void> {}
 }
 
 test("hook onInbound melakukan short-circuit sebelum memanggil LLM", async () => {

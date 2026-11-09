@@ -31,7 +31,7 @@ npx ibra-x start    # jalankan agen + dashboard (http://127.0.0.1:8787)
 - **Baca, ingat, pahami, bertindak** — memori jangka panjang (SQLite + FTS5), transkripsi suara, deskripsi gambar.
 - **Multi-nomor berperan** — `observer` (membaca), `assistant` (membalas), `hybrid`; memori dibagi antar-nomor.
 - **Banyak penyedia LLM** — OpenAI, Anthropic, Google, OpenRouter, Groq, Mistral, DeepSeek, xAI, Ollama, custom.
-- **22 tool WhatsApp** — kirim teks/media, reaksi, sunting/hapus, presence, riwayat, info grup, admin grup, poll, lokasi, cek nomor, blokir.
+- **28 tool WhatsApp** — kirim teks/media/suara, reaksi, sunting/hapus, presence, riwayat, admin grup, poll, lokasi, kontak, arsip/pin/mute, blokir.
 - **Otomasi proaktif** — pengingat, pesan terjadwal, ringkasan harian (job periodik milik skill).
 - **Subagen** — delegasi berkonteks terisolasi.
 - **Skills API & SDK** + **MCP** (stdio & Streamable HTTP).- **Dashboard web** dan **guardrails** (rate limit, jam tenang, otonomi berjenjang).

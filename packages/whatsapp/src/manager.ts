@@ -167,6 +167,18 @@ export class WhatsAppManager implements Transport {
     await this.require(accountId).blockStatus(chatId, block)
   }
 
+  async chatModify(
+    accountId: string,
+    chatId: string,
+    action: "archive" | "unarchive" | "pin" | "unpin" | "mute" | "unmute" | "markUnread",
+  ): Promise<void> {
+    await this.require(accountId).chatModify(chatId, action)
+  }
+
+  async sendContact(accountId: string, chatId: string, contact: { displayName: string; vcard: string }): Promise<void> {
+    await this.require(accountId).sendContact(chatId, contact)
+  }
+
   private require(accountId: string): AccountRuntime {
     const runtime = this.runtimes.get(accountId)
     if (!runtime) throw new Error(`Akun WhatsApp "${accountId}" tidak aktif`)

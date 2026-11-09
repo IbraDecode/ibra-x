@@ -370,6 +370,32 @@ export class AccountRuntime {
     await this.sock.updateBlockStatus(chatId, block ? "block" : "unblock")
   }
 
+  async chatModify(
+    chatId: string,
+    action: "archive" | "unarchive" | "pin" | "unpin" | "mute" | "unmute" | "markUnread",
+  ): Promise<void> {
+    if (!this.sock) return
+    const lastMessages: never[] = []
+    let modification: any
+    if (action === "archive") modification = { archive: true, lastMessages }
+    else if (action === "unarchive") modification = { archive: false, lastMessages }
+    else if (action === "pin") modification = { pin: true }
+    else if (action === "unpin") modification = { pin: false }
+    else if (action === "mute") modification = { mute: 8 * 60 * 60 }
+    else if (action === "unmute") modification = { mute: null }
+    else modification = { markRead: false, lastMessages }
+    await this.sock.chatModify(modification, chatId)
+  }
+
+  async sendContact(chatId: string, contact: { displayName: string; vcard: string }): Promise<void> {
+    if (!this.sock) return
+    await this.enqueueSend(() =>
+      this.sock!.sendMessage(chatId, {
+        contacts: { displayName: contact.displayName, contacts: [{ vcard: contact.vcard }] },
+      }),
+    )
+  }
+
   stop(): void {
     this.stopped = true
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
