@@ -1,5 +1,6 @@
 import { Command } from "commander"
 import pc from "picocolors"
+import { VERSION } from "@ibrax/core"
 import {
   cmdChat,
   cmdDoctor,
@@ -18,7 +19,7 @@ const program = new Command()
 program
   .name("ibrax")
   .description("Ibra X — agen otonom untuk WhatsApp")
-  .version("0.1.0")
+  .version(VERSION)
 
 program.command("init").description("Wizard penyiapan: provider, model, akun").action(run(cmdInit))
 program.command("start").description("Jalankan agen + server HTTP").action(run(cmdStart))

@@ -26,7 +26,7 @@ git clone https://github.com/IbraDecode/ibra-x.git
 cd ibra-x
 npm install
 npm run init      # wizard: pilih provider, isi API key, tautkan nomor WhatsApp
-npm run start     # jalankan agen
+npm run start     # jalankan agen + dashboard (http://127.0.0.1:8787)
 ```
 
 Atau via Docker:
@@ -105,6 +105,10 @@ Skill kustom dapat menambahkan `jobs` sendiri (lihat [`docs/SKILLS.md`](docs/SKI
 ## Subagen (delegasi)
 
 Agen dapat mendelegasikan tugas mandiri ke **subagen berkonteks terisolasi** lewat tool `spawn_subagent`. Hanya ringkasan akhir yang kembali, sehingga konteks percakapan utama tetap ringkas. Kedalaman bersarang dibatasi `maxSubagentDepth` (default 1) untuk mencegah rekursi tak terkendali.
+
+## Dashboard
+
+Setelah `ibrax start`, buka **http://127.0.0.1:8787** — dashboard satu halaman (tanpa build step) menampilkan status, akun, skill/tool, pencarian memori, penguji agen, dan aliran event langsung (SSE). Bila `IBRA_API_TOKEN` diset, buka dengan `?token=<token>`.
 
 ---
 

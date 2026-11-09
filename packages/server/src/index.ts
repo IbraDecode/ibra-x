@@ -4,7 +4,8 @@ import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
 import { serve } from "@hono/node-server"
 import { createApp, type CreateAppOptions, type IbraApp } from "@ibrax/app"
-import { loadConfig, type IbraConfig } from "@ibrax/core"
+import { VERSION, loadConfig, type IbraConfig } from "@ibrax/core"
+import { dashboardHtml } from "./dashboard.ts"
 
 export interface StartServerOptions extends CreateAppOptions {
   app?: IbraApp
@@ -24,21 +25,22 @@ export function createServer(app: IbraApp) {
   const server = new Hono()
   const startedAt = Date.now()
 
-  // Autentikasi token opsional.
+  // Autentikasi token opsional (header atau query `token` untuk EventSource).
   server.use("/api/*", async (c, next) => {
     const token = app.config.apiToken
     if (token) {
-      const provided = c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? c.req.header("x-api-token")
+      const provided = c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? c.req.header("x-api-token") ?? c.req.query("token")
       if (provided !== token) return c.json({ error: "unauthorized" }, 401)
     }
     await next()
   })
 
+  server.get("/", (c) => c.html(dashboardHtml()))
   server.get("/health", (c) => c.json({ ok: true, uptimeMs: Date.now() - startedAt }))
 
   server.get("/api/status", (c) =>
     c.json({
-      version: "0.1.0",
+      version: VERSION,
       provider: app.config.provider,
       model: app.config.model,
       autonomy: app.config.autonomy,

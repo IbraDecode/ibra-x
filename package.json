@@ -1,6 +1,6 @@
 {
   "name": "ibra-x",
-  "version": "0.1.0",
+  "version": "0.6.0",
   "private": true,
   "description": "Agen otonom untuk WhatsApp — membaca, mengingat, memahami, dan bertindak. Multi-nomor, multi-provider LLM, Skills API & SDK.",
   "license": "MIT",
