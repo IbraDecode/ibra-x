@@ -4,6 +4,16 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.26.0] — 2026-11-09
+
+### Ditambahkan
+- **Snapshot pesan yang ditarik (revoke)**: `protocolMessage` REVOKE dideteksi; pesan asli
+  disalin ke penyimpanan (`revoked:<id>`) sebelum konteksnya hilang, dicatat di audit, dan
+  dipancarkan lewat event `message.revoked`. Tersedia `GET /api/revoked` dan aliran SSE.
+
+### Diperbaiki
+- Pesan `protocolMessage` tidak lagi dibuang diam-diam — penghapusan kini mengawetkan isi asli.
+
 ## [0.25.0] — 2026-11-09
 
 ### Ditambahkan

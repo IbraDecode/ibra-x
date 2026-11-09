@@ -453,3 +453,34 @@ test("alur persetujuan: aksi terparkir dilanjutkan setelah disetujui", async () 
   assert.equal(runtime.approvals!.list().length, 0, "daftar terparkir kosong setelah disetujui")
   store.close()
 })
+
+test("revoke menyimpan snapshot pesan asli", async () => {
+  const provider = new ScriptedProvider([])
+  const store = new Store(":memory:")
+  const config = ConfigSchema.parse({})
+  const runtime = new Runtime({ config, store, bus: new EventBus(), logger: noopLogger, provider, registry: new SkillRegistry() })
+  store.insertMessage({
+    id: "orig",
+    accountId: "a1",
+    chatId: "c1",
+    senderId: "s",
+    fromMe: false,
+    text: "pesan rahasia",
+    timestamp: 1000,
+  })
+  await runtime.handleInbound({
+    id: "r1",
+    accountId: "a1",
+    chatId: "c1",
+    chatKind: "dm",
+    senderId: "62811@s.whatsapp.net",
+    fromMe: false,
+    timestamp: Date.now(),
+    revokeTargetId: "orig",
+    isSystem: true,
+  })
+  const revoked = store.kvGet<{ text?: string; chatId?: string }>("revoked:orig")
+  assert.equal(revoked?.text, "pesan rahasia")
+  assert.equal(revoked?.chatId, "c1")
+  store.close()
+})

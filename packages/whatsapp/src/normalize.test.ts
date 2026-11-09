@@ -126,3 +126,13 @@ test("protocolMessage ditandai sebagai sistem (tidak memicu agen)", () => {
   assert.equal(n?.isSystem, true)
   assert.equal(n?.text, undefined)
 })
+
+test("protocolMessage REVOKE menandai target penghapusan", () => {
+  const msg = {
+    key: { remoteJid: "x@s.whatsapp.net", id: "r1", fromMe: false },
+    message: { protocolMessage: { type: 0, key: { id: "target1" } } },
+    messageTimestamp: 1,
+  }
+  const n = normalizeBaileysMessage("a1", msg)
+  assert.equal(n?.revokeTargetId, "target1")
+})

@@ -59,6 +59,14 @@ export function createServer(app: IbraApp) {
 
   server.get("/api/metrics", (c) => c.json(app.metrics.snapshot()))
 
+  server.get("/api/revoked", (c) =>
+    c.json(
+      app.store
+        .kvList("revoked:")
+        .map((entry) => ({ id: entry.key.slice("revoked:".length), ...(entry.value as Record<string, unknown>) })),
+    ),
+  )
+
   server.get("/api/chats", (c) => c.json(app.store.listChats()))
 
   server.get("/api/memory/search", (c) => {
@@ -120,6 +128,7 @@ export function createServer(app: IbraApp) {
         "account.status",
         "memory.written",
         "poll.vote",
+        "message.revoked",
       ] as const
       const unsubs = events.map((event) =>
         app.bus.on(event, (payload) => {

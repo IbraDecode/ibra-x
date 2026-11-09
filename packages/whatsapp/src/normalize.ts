@@ -166,8 +166,12 @@ export function normalizeBaileysMessage(
   const own = opts.ownIds ?? new Set<string>()
   const isSelfChat = fromMe && own.size > 0 && own.has(jidIdentity(chatId))
 
+  // Deteksi penghapusan pesan (protocolMessage REVOKE, tipe 0).
+  const protocol = content.protocolMessage as { type?: number; key?: { id?: string | null } } | undefined
+  const revokeTargetId = protocol && protocol.type === 0 ? (protocol.key?.id ?? undefined) : undefined
+
   // Buang pesan yang tidak punya konten bermakna sama sekali.
-  if (!text && !media && !isSystem) return undefined
+  if (!text && !media && !isSystem && !revokeTargetId) return undefined
 
   return {
     id: key.id,
@@ -186,5 +190,6 @@ export function normalizeBaileysMessage(
     isEphemeral: ephemeral || undefined,
     isSelfChat: isSelfChat || undefined,
     isSystem: isSystem || undefined,
+    revokeTargetId: revokeTargetId ?? undefined,
   }
 }

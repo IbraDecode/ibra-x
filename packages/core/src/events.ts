@@ -15,6 +15,7 @@ export interface IbraEvents {
   "account.status": { accountId: string; status: "idle" | "connecting" | "open" | "close"; reason?: string }
   "memory.written": { id: string; scope: string; text: string }
   "poll.vote": { accountId: string; chatId: string; pollId: string; votes: Array<{ name: string; voters: string[] }> }
+  "message.revoked": { accountId: string; chatId: string; targetId: string; text: string }
   error: { scope: string; error: unknown }
 }
 

@@ -405,4 +405,6 @@ export interface InboundMessage {
   isSelfChat?: boolean
   /** Pesan sistem (mis. protocolMessage) — bukan percakapan biasa. */
   isSystem?: boolean
+  /** Bila pesan ini adalah penghapusan (revoke), id pesan yang ditarik. */
+  revokeTargetId?: string
 }

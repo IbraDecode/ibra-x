@@ -145,6 +145,9 @@ Media masuk diunduh otomatis ke `<dataDir>/media/`. Agen dapat **memahami & meng
 
 Semuanya melampirkan/menghasilkan konten yang dipakai agen.
 
+**Pesan yang ditarik (revoke)** di-*snapshot* otomatis (isi asli disimpan sebelum hilang),
+dapat diakses via `GET /api/revoked` atau event `message.revoked`.
+
 ## Otomasi (job periodik)
 
 Agen dapat bertindak **proaktif** lewat job periodik yang dideklarasikan skill:

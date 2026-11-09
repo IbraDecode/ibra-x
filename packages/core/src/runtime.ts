@@ -627,7 +627,11 @@ export class Runtime implements RuntimeApi {
       mediaJson: msg.media ? JSON.stringify(msg.media) : undefined,
     })
 
-    // Pesan sistem (protocol/reaction tanpa teks) tidak memicu agen.
+    // Pesan sistem (protocol/reaction tanpa teks) tidak memicu agen — kecuali revoke.
+    if (msg.revokeTargetId) {
+      this.handleRevoke(msg)
+      return
+    }
     if (msg.isSystem) return
 
     // Gema pesan yang dikirim bot ini: cukup disimpan sebagai konteks, jangan dibalas.
@@ -754,6 +758,33 @@ export class Runtime implements RuntimeApi {
     } catch {
       // Diamkan kegagalan notifikasi owner.
     }
+  }
+
+  /** Menyimpan snapshot pesan yang ditarik (revoke) sebelum konteksnya hilang. */
+  private handleRevoke(msg: InboundMessage): void {
+    const target = msg.revokeTargetId
+    if (!target) return
+    const original = this.store.getMessage(target)
+    this.store.audit({
+      actor: msg.accountId,
+      action: "message.revoked",
+      detail: { chatId: msg.chatId, targetId: target, found: Boolean(original) },
+    })
+    if (!original) return
+    this.store.kvSet(`revoked:${target}`, {
+      accountId: msg.accountId,
+      chatId: msg.chatId,
+      senderId: original.senderId,
+      text: original.text,
+      revokedBy: msg.senderId,
+      at: Date.now(),
+    })
+    this.bus.emit("message.revoked", {
+      accountId: msg.accountId,
+      chatId: msg.chatId,
+      targetId: target,
+      text: original.text,
+    })
   }
 
   private async deliverReply(msg: InboundMessage, account: AccountConfig, result: AgentRunResult): Promise<void> {

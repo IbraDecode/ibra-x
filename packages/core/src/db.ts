@@ -249,6 +249,16 @@ export class Store {
     return r ? { ...r, fromMe: !!r.fromMe } : undefined
   }
 
+  /** Pesan berdasarkan id (untuk snapshot saat penghapusan/revoke). */
+  getMessage(id: string): StoredMessage | undefined {
+    const r = this.db
+      .prepare(
+        "SELECT id, account_id as accountId, chat_id as chatId, sender_id as senderId, from_me as fromMe, text, timestamp, media_json as mediaJson FROM messages WHERE id=? LIMIT 1",
+      )
+      .get(id) as any
+    return r ? { ...r, fromMe: !!r.fromMe } : undefined
+  }
+
   // --- Pesan proto mentah (getMessage) ------------------------------------
   private rawInsertCount = 0
 
