@@ -12,6 +12,7 @@ import {
   loadMcpSkills,
   loadSkills,
   registerSkillJobs,
+  resolveSkillDirs,
   subagentSkill,
   type IbraConfig,
   type SkillRegistry,
@@ -64,8 +65,9 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
     list: async (prefix = "") => store.kvList(`skill:${prefix}`),
   }
 
+  // Skill paket (hasil build berada di <paket>/dist/skills) + skill dari config.
   const registry = await loadSkills({
-    dirs: config.skills.dirs,
+    dirs: resolveSkillDirs(config.skills.dirs, import.meta.url),
     packages: config.skills.packages,
     disabled: config.skills.disabled,
     builtins: [coreMemorySkill, whatsappSkill, subagentSkill],

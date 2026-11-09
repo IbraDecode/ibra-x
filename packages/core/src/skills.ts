@@ -1,7 +1,22 @@
 import { existsSync, readdirSync, statSync } from "node:fs"
 import { isAbsolute, join, resolve } from "node:path"
-import { pathToFileURL } from "node:url"
+import { fileURLToPath, pathToFileURL } from "node:url"
 import type { Logger, Skill, SkillStore, Tool } from "@ibrax/sdk"
+
+/**
+ * Menghitung direktori skill: sertakan direktori skill bawaan paket (hasil
+ * build `dist/skills`, sebelah modul pemanggil) bila ada, lalu dir dari config.
+ * `moduleUrl` adalah `import.meta.url` pemanggil.
+ */
+export function resolveSkillDirs(configDirs: string[], moduleUrl: string): string[] {
+  let packaged: string | undefined
+  try {
+    packaged = fileURLToPath(new URL("./skills", moduleUrl))
+  } catch {
+    packaged = undefined
+  }
+  return [...(packaged && existsSync(packaged) ? [packaged] : []), ...configDirs]
+}
 
 export interface LoadSkillsOptions {
   /** Direktori yang dipindai (relatif terhadap cwd). */

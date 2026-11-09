@@ -1,7 +1,6 @@
 {
   "name": "ibra-x",
   "version": "0.10.0",
-  "private": true,
   "description": "Agen otonom untuk WhatsApp — membaca, mengingat, memahami, dan bertindak. Multi-nomor, multi-provider LLM, Skills API & SDK.",
   "license": "MIT",
   "author": "IbraDecode <ibradecode@gmail.com>",
@@ -13,20 +12,55 @@
     "packages/*"
   ],
   "bin": {
-    "ibrax": "packages/cli/bin/ibrax.mjs"
+    "ibrax": "./dist/cli.js"
   },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md"
+  ],
+  "keywords": [
+    "whatsapp",
+    "whatsapp-bot",
+    "ai-agent",
+    "llm",
+    "baileys",
+    "mcp",
+    "multi-agent",
+    "automation",
+    "openai",
+    "anthropic"
+  ],
   "scripts": {
+    "build": "tsup",
     "init": "tsx packages/cli/src/index.ts init",
     "start": "tsx packages/cli/src/index.ts start",
     "dev": "tsx watch packages/cli/src/index.ts start",
     "cli": "tsx packages/cli/src/index.ts",
-    "server": "tsx packages/server/src/index.ts",
+    "server": "tsx packages/server/src/main.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test packages/*/src/*.test.ts skills/*/*.test.ts",
-    "doctor": "tsx packages/cli/src/index.ts doctor"
+    "doctor": "tsx packages/cli/src/index.ts doctor",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "@whiskeysockets/baileys": "^7.0.0-rc.14",
+    "better-sqlite3": "^11.5.0",
+    "commander": "^12.1.0",
+    "hono": "^4.6.14",
+    "picocolors": "^1.1.1",
+    "pino": "^9.5.0",
+    "qrcode-terminal": "^0.12.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   }

@@ -11,6 +11,7 @@ import {
   loadConfig,
   loadDotEnv,
   loadSkills,
+  resolveSkillDirs,
   saveConfig,
   subagentSkill,
   configPath,
@@ -178,7 +179,7 @@ export async function cmdStatus(): Promise<void> {
   const { config } = loadContext()
   const store = new Store(resolve(process.cwd(), config.dataDir, "ibra.sqlite"))
   const registry = await loadSkills({
-    dirs: config.skills.dirs,
+    dirs: resolveSkillDirs(config.skills.dirs, import.meta.url),
     packages: config.skills.packages,
     disabled: config.skills.disabled,
     builtins: [coreMemorySkill, whatsappSkill, subagentSkill],
@@ -241,7 +242,7 @@ export async function cmdDoctor(): Promise<void> {
 export async function cmdSkills(): Promise<void> {
   const { config } = loadContext()
   const registry = await loadSkills({
-    dirs: config.skills.dirs,
+    dirs: resolveSkillDirs(config.skills.dirs, import.meta.url),
     packages: config.skills.packages,
     disabled: config.skills.disabled,
     builtins: [coreMemorySkill, whatsappSkill, subagentSkill],

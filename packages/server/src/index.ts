@@ -1,10 +1,9 @@
 import { randomUUID } from "node:crypto"
-import { pathToFileURL } from "node:url"
 import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
 import { serve } from "@hono/node-server"
 import { createApp, type CreateAppOptions, type IbraApp } from "@ibrax/app"
-import { VERSION, loadConfig, type IbraConfig } from "@ibrax/core"
+import { VERSION, type IbraConfig } from "@ibrax/core"
 import { dashboardHtml } from "./dashboard.ts"
 
 export interface StartServerOptions extends CreateAppOptions {
@@ -154,13 +153,4 @@ export async function startServer(config: IbraConfig, opts: StartServerOptions =
       app.stop()
     },
   }
-}
-
-// Entri mandiri: `npm run server`
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const { config } = loadConfig()
-  startServer(config).catch((error) => {
-    console.error("Gagal menjalankan server:", error)
-    process.exit(1)
-  })
 }

@@ -21,6 +21,15 @@
 
 ## Mulai Cepat
 
+**Tanpa clone (via npm):**
+
+```bash
+npx ibra-x init     # wizard: pilih provider, isi API key, tautkan nomor WhatsApp
+npx ibra-x start    # jalankan agen + dashboard (http://127.0.0.1:8787)
+```
+
+**Dari sumber:**
+
 ```bash
 git clone https://github.com/IbraDecode/ibra-x.git
 cd ibra-x
