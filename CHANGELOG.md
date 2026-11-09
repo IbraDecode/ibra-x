@@ -4,6 +4,14 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.18.0] — 2026-11-09
+
+### Ditambahkan
+- **Webhook keluar**: `config.webhooks` mengirim event ke sistem lain (n8n/Slack/CRM)
+  sebagai HTTP POST `{ event, at, data }`, dengan tanda tangan HMAC-SHA256 (`x-ibra-signature`)
+  dan percobaan ulang otomatis.
+- `WebhookDispatcher` + `signPayload` (fungsi murni, diuji) dengan `fetch` yang dapat disuntik.
+
 ## [0.17.0] — 2026-11-09
 
 ### Ditambahkan

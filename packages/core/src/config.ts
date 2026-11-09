@@ -23,6 +23,16 @@ export const McpServerSchema = z.object({
   env: z.record(z.string()).optional(),
 })
 
+export const WebhookSchema = z.object({
+  url: z.string().url(),
+  /** Event yang dikirim (default: pesan masuk/keluar, agen selesai, memori, status, error). */
+  events: z.array(z.string()).optional(),
+  /** Bila diisi, payload ditandatangani (header `x-ibra-signature`). */
+  secret: z.string().optional(),
+  headers: z.record(z.string()).optional(),
+})
+export type WebhookConfig = z.infer<typeof WebhookSchema>
+
 export const ConfigSchema = z.object({
   provider: z.string().default("openrouter"),
   model: z.string().default("anthropic/claude-sonnet-4.5"),
@@ -63,6 +73,8 @@ export const ConfigSchema = z.object({
     })
     .default({ dirs: ["skills"], packages: [], disabled: [] }),
   mcpServers: z.record(McpServerSchema).default({}),
+  /** Webhook keluar: kirim event ke sistem lain (n8n, Slack, CRM, dsb.). */
+  webhooks: z.array(WebhookSchema).default([]),
   /** Pemrosesan media masuk. */
   media: z
     .object({

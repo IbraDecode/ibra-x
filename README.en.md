@@ -151,6 +151,20 @@ MCP tools appear as skills with an `<id>__` prefix.
 
 The agent can delegate self-contained tasks to **context-isolated subagents** via `spawn_subagent`. Only the final summary returns, keeping the main context small. Nesting depth is capped by `maxSubagentDepth` (default 1).
 
+## Outbound Webhooks
+
+Send events to other systems (n8n, Slack, CRM) via `config.webhooks`:
+
+```json
+{
+  "webhooks": [
+    { "url": "https://n8n.example/webhook/ibra", "events": ["inbound.message", "agent.finished"], "secret": "secret" }
+  ]
+}
+```
+
+JSON payload: `{ event, at, data }`. With a `secret`, the `x-ibra-signature` header carries an HMAC-SHA256 of the body. Failed deliveries are retried.
+
 ## Dashboard
 
 After `ibrax start`, open **http://127.0.0.1:8787** — a single-page dashboard (no build step) showing status, accounts, skills/tools, an agent tester, memory search, and a live event stream (SSE). If `IBRA_API_TOKEN` is set, open with `?token=<token>`.

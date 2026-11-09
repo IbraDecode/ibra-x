@@ -153,6 +153,20 @@ Skill kustom dapat menambahkan `jobs` sendiri (lihat [`docs/SKILLS.md`](docs/SKI
 
 Agen dapat mendelegasikan tugas mandiri ke **subagen berkonteks terisolasi** lewat tool `spawn_subagent`. Hanya ringkasan akhir yang kembali, sehingga konteks percakapan utama tetap ringkas. Kedalaman bersarang dibatasi `maxSubagentDepth` (default 1) untuk mencegah rekursi tak terkendali.
 
+## Webhook keluar
+
+Kirim event ke sistem lain (n8n, Slack, CRM) lewat `config.webhooks`:
+
+```json
+{
+  "webhooks": [
+    { "url": "https://n8n.contoh/webhook/ibra", "events": ["inbound.message", "agent.finished"], "secret": "rahasia" }
+  ]
+}
+```
+
+Payload JSON: `{ event, at, data }`. Bila `secret` diisi, header `x-ibra-signature` berisi HMAC-SHA256 body. Percobaan ulang otomatis bila gagal.
+
 ## Dashboard
 
 Setelah `ibrax start`, buka **http://127.0.0.1:8787** — dashboard satu halaman (tanpa build step) menampilkan status, akun, skill/tool, pencarian memori, penguji agen, dan aliran event langsung (SSE). Bila `IBRA_API_TOKEN` diset, buka dengan `?token=<token>`.

@@ -4,6 +4,7 @@ import {
   Runtime,
   Scheduler,
   Store,
+  WebhookDispatcher,
   coreMemorySkill,
   createImageDescriber,
   createLogger,
@@ -59,6 +60,10 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
   const dataDir = ensureDataDir(config)
   const store = new Store(resolve(dataDir, "ibra.sqlite"))
   const bus = new EventBus()
+
+  // Webhook keluar (opsional): tersambung ke bus event.
+  const webhooks = new WebhookDispatcher(bus, { logger: logger.child({ comp: "webhooks" }) })
+  webhooks.start(config.webhooks)
 
   const provider = resolveProvider({ providerId: config.provider })
 
@@ -185,6 +190,7 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
 
   function stop(): void {
     scheduler.stop()
+    webhooks.stop()
     manager.stopAll()
     void Promise.all(mcp.clients.map((client) => client.close().catch(() => {})))
     store.close()
