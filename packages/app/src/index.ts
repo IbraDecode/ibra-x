@@ -6,6 +6,7 @@ import {
   coreMemorySkill,
   createLogger,
   ensureDataDir,
+  loadMcpSkills,
   loadSkills,
   type IbraConfig,
   type SkillRegistry,
@@ -66,6 +67,10 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
     logger: logger.child({ comp: "skills" }),
   })
 
+  // Server MCP: daftarkan tool-nya sebagai skill.
+  const mcp = await loadMcpSkills(config.mcpServers, logger.child({ comp: "mcp" }))
+  for (const skill of mcp.skills) registry.register(skill)
+
   const manager = new WhatsAppManager({
     config,
     dataDir,
@@ -106,6 +111,7 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
 
   function stop(): void {
     manager.stopAll()
+    void Promise.all(mcp.clients.map((client) => client.close().catch(() => {})))
     store.close()
   }
 

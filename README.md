@@ -52,6 +52,22 @@ docker compose logs -f
 
 ---
 
+## Skill & MCP
+
+Selain skill lokal (`skills/`) dan paket npm (`ibra-skill-*`), Ibra X dapat memakai **server MCP** sebagai sumber tool. Tambahkan ke `config.json`:
+
+```json
+{
+  "mcpServers": {
+    "filesystem": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "/docs"] }
+  }
+}
+```
+
+Tool MCP muncul otomatis sebagai skill dengan prefiks `<id>__`. Lihat [`docs/SKILLS.md`](docs/SKILLS.md).
+
+---
+
 ## Kemampuan WhatsApp
 
 Skill bawaan `whatsapp` mengekspos operasi ini sebagai tool (semuanya tunduk pada policy & tingkat otonomi):
@@ -76,7 +92,7 @@ Media masuk diunduh otomatis ke `<dataDir>/media/` agar dapat diproses lebih lan
 ## Dokumentasi
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — arsitektur, keputusan desain, dan alur.
-- [`docs/SKILLS.md`](docs/SKILLS.md) — cara menulis skill (menyusul).
+- [`docs/SKILLS.md`](docs/SKILLS.md) — cara menulis skill dan memakai server MCP.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — alur kontribusi dan strategi branch.
 
 ---

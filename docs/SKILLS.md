@@ -95,7 +95,26 @@ Atau unit test langsung terhadap `execute` dengan `ctx` tiruan.
 
 - **Lokal**: taruh di `skills/`.
 - **Paket npm**: publikasikan sebagai `ibra-skill-<nama>` (ekspor `default` skill), lalu daftarkan di `config.skills.packages`.
-- **MCP** *(rencana)*: daftarkan server di `config.mcpServers`; tool MCP akan muncul sebagai tool skill.
+- **MCP**: daftarkan server di `config.mcpServers`; tool MCP otomatis menjadi tool skill (lihat di bawah).
+
+## Server MCP
+
+Ibra X berbicara **Model Context Protocol** (stdio dan Streamable HTTP). Tool dari
+server MCP didaftarkan sebagai skill dengan prefiks `<id>__` agar tidak bentrok:
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/docs"]
+    },
+    "remote": { "url": "https://mcp.contoh.dev/mcp", "risk": "low" }
+  }
+}
+```
+
+Tool yang dianotasi `readOnlyHint` otomatis berisiko `low`, `destructiveHint` menjadi `high`.
 
 ## Praktik Terbaik
 
