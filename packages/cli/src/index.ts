@@ -5,9 +5,12 @@ import {
   cmdChat,
   cmdDoctor,
   cmdInit,
+  cmdMemoryExport,
+  cmdMemoryImport,
   cmdMemoryList,
   cmdMemoryRemove,
   cmdMemorySearch,
+  cmdMemoryVerify,
   cmdPair,
   cmdSkills,
   cmdStart,
@@ -50,6 +53,17 @@ memory
   .description("Hapus memori berdasarkan id")
   .argument("<id>")
   .action((id: string) => run(() => cmdMemoryRemove(id))())
+memory
+  .command("export")
+  .description("Ekspor memori ke file (atau stdout)")
+  .argument("[file]")
+  .action((file?: string) => run(() => cmdMemoryExport(file))())
+memory
+  .command("import")
+  .description("Impor memori dari file ekspor")
+  .argument("<file>")
+  .action((file: string) => run(() => cmdMemoryImport(file))())
+memory.command("verify").description("Tampilkan jumlah & sidik jari memori").action(run(cmdMemoryVerify))
 
 program
   .command("chat")

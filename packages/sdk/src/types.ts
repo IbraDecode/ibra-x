@@ -135,7 +135,9 @@ export interface MemoryApi {
     text: string
     tags?: string[]
     source?: string
-  }): Promise<{ id: string }>
+    /** Akun WhatsApp yang mempelajari fakta ini (jejak lintas-nomor). */
+    sourceAccountId?: string
+  }): Promise<{ id: string; merged?: boolean }>
   search(query: string, opts?: { scope?: "global" | "contact" | "chat"; scopeId?: string; limit?: number }): Promise<
     Array<{ id: string; scope: string; scopeId?: string; text: string; tags: string[]; createdAt: number }>
   >

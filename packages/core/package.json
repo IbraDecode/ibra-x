@@ -1,6 +1,6 @@
 {
   "name": "@ibrax/core",
-  "version": "0.6.0",
+  "version": "0.8.0",
   "description": "Inti Ibra X: config, database, memori, sesi, policy, loader skill, dan loop agen.",
   "license": "MIT",
   "type": "module",

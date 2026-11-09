@@ -57,3 +57,53 @@ test("antrean masuk bersifat idempoten", () => {
   assert.equal(store.enqueueInbox("a1", inbound), false)
   store.close()
 })
+
+test("fakta yang sama digabung dan provenance bertambah (memori lintas-nomor)", async () => {
+  const store = new Store(":memory:")
+  const memory = new MemoryService(store)
+
+  const first = await memory.remember({
+    scope: "contact",
+    scopeId: "c1",
+    text: "Suka kopi tanpa gula",
+    sourceAccountId: "observer",
+  })
+  const second = await memory.remember({
+    scope: "contact",
+    scopeId: "c1",
+    text: "Suka kopi tanpa gula",
+    sourceAccountId: "assistant",
+  })
+
+  assert.equal(first.merged, false)
+  assert.equal(second.merged, true)
+  assert.equal(first.id, second.id, "id sama, tidak diduplikasi")
+  assert.equal(store.countMemory(), 1)
+
+  const row = store.getMemory(first.id)!
+  assert.equal(row.provenance.length, 2)
+  assert.deepEqual(
+    row.provenance.map((p) => p.accountId).sort(),
+    ["assistant", "observer"],
+    "jejak kedua akun tercatat",
+  )
+  store.close()
+})
+
+test("fingerprint stabil dan berubah hanya saat isi berubah", async () => {
+  const store = new Store(":memory:")
+  const memory = new MemoryService(store)
+
+  const empty = store.memoryFingerprint()
+  const { id } = await memory.remember({ scope: "global", text: "fakta A", sourceAccountId: "a1" })
+  const once = store.memoryFingerprint()
+  assert.notEqual(empty, once)
+
+  // Dedup tidak mengubah isi → fingerprint tetap.
+  await memory.remember({ scope: "global", text: "fakta A", sourceAccountId: "a2" })
+  assert.equal(store.memoryFingerprint(), once)
+
+  await memory.forget(id)
+  assert.equal(store.memoryFingerprint(), empty)
+  store.close()
+})

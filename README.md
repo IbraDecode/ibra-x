@@ -112,6 +112,17 @@ Setelah `ibrax start`, buka **http://127.0.0.1:8787** — dashboard satu halaman
 
 ---
 
+## Memori & privasi
+
+Memori jangka panjang disimpan di satu SQLite (FTS5) dan **dibagi antar-nomor** — fakta yang dipelajari nomor `observer` langsung tersedia bagi `assistant`. Setiap fakta menyimpan **provenance** (akun mana, kapan), dan fakta identik **digabung, bukan diduplikasi**.
+
+```bash
+ibrax memory search "<kata kunci>"
+ibrax memory export backup.json     # ekspor (dengan sidik jari)
+ibrax memory import backup.json     # impor (idempoten)
+ibrax memory verify                 # jumlah + sidik jari (deteksi perubahan)
+```
+
 ## Keamanan & batas
 
 - **Allowlist pengirim** — `IBRA_ALLOWLIST`; kosong = mode owner-only.

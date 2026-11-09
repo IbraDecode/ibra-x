@@ -88,8 +88,9 @@ export const coreMemorySkill = defineSkill({
             text: input.text,
             tags: input.tags,
             source: ctx.chatId ? `chat:${ctx.chatId}` : "agent",
+            sourceAccountId: ctx.accountId,
           })
-          return { id: res.id }
+          return { id: res.id, merged: res.merged ?? false }
         },
       },
     ),

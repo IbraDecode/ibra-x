@@ -295,6 +295,59 @@ export async function cmdMemoryRemove(id: string): Promise<void> {
   store.close()
 }
 
+export async function cmdMemoryExport(file?: string): Promise<void> {
+  const { config } = loadContext()
+  const store = new Store(resolve(process.cwd(), config.dataDir, "ibra.sqlite"))
+  const payload = { version: 1, fingerprint: store.memoryFingerprint(), items: store.allMemory() }
+  const json = JSON.stringify(payload, null, 2)
+  if (file) {
+    writeFileSync(resolve(process.cwd(), file), json + "\n", "utf8")
+    console.log(pc.green(`✓ ${payload.items.length} memori diekspor ke ${file}`))
+  } else {
+    console.log(json)
+  }
+  store.close()
+}
+
+export async function cmdMemoryImport(file: string): Promise<void> {
+  const { config } = loadContext()
+  const store = new Store(resolve(process.cwd(), config.dataDir, "ibra.sqlite"))
+  const raw = JSON.parse(readFileSync(resolve(process.cwd(), file), "utf8")) as
+    | { items?: unknown[] }
+    | unknown[]
+  const items = (Array.isArray(raw) ? raw : (raw.items ?? [])) as Array<Record<string, any>>
+
+  let imported = 0
+  let skipped = 0
+  for (const item of items) {
+    if (!item?.id || !item?.text || store.getMemory(String(item.id))) {
+      skipped++
+      continue
+    }
+    store.insertMemory({
+      id: String(item.id),
+      scope: String(item.scope ?? "global"),
+      scopeId: item.scopeId ?? undefined,
+      text: String(item.text),
+      tags: Array.isArray(item.tags) ? item.tags.map(String) : [],
+      source: item.source ?? undefined,
+      accountId: item.accountId ?? undefined,
+      provenance: Array.isArray(item.provenance) ? item.provenance : [],
+      createdAt: Number(item.createdAt ?? Date.now()),
+    })
+    imported++
+  }
+  console.log(pc.green(`✓ diimpor ${imported}, dilewati ${skipped}. Fingerprint: ${store.memoryFingerprint().slice(0, 12)}…`))
+  store.close()
+}
+
+export async function cmdMemoryVerify(): Promise<void> {
+  const { config } = loadContext()
+  const store = new Store(resolve(process.cwd(), config.dataDir, "ibra.sqlite"))
+  console.log(`Memori: ${store.countMemory()}  Fingerprint: ${store.memoryFingerprint()}`)
+  store.close()
+}
+
 // ---------------------------------------------------------------------------
 // chat (uji agen dari terminal)
 // ---------------------------------------------------------------------------

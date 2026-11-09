@@ -4,6 +4,14 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.8.0] — 2026-11-09
+
+### Ditambahkan
+- Memori bersama antar-nomor dengan **provenance** (akun mana, kapan) dan **dedup** (fakta identik digabung).
+- `memoryFingerprint()` — sidik jari stabil isi memori untuk deteksi perubahan/tamper.
+- CLI: `ibrax memory export`, `ibrax memory import`, `ibrax memory verify`.
+- Migrasi skema ringan (menambah kolom baru pada DB lama otomatis).
+
 ## [0.7.0] — 2026-11-09
 
 ### Ditambahkan

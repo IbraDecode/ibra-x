@@ -1,2 +1,2 @@
 /** Versi Ibra X — satu sumber kebenaran untuk CLI, server, dan API. */
-export const VERSION = "0.6.0"
+export const VERSION = "0.8.0"

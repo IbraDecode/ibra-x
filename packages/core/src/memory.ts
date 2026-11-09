@@ -1,9 +1,15 @@
 import { randomUUID } from "node:crypto"
 import type { MemoryApi } from "@ibrax/sdk"
-import type { Store } from "./db.ts"
+import type { MemoryRow, Store } from "./db.ts"
 import type { EventBus } from "./events.ts"
 
-/** Implementasi memori jangka panjang di atas SQLite + FTS5. */
+/**
+ * Memori jangka panjang di atas SQLite + FTS5.
+ *
+ * Karena seluruh akun WhatsApp berbagi satu store, memori otomatis **bersama
+ * antar-nomor**. Setiap fakta menyimpan provenance (akun mana, kapan), dan
+ * fakta yang dipelajari ulang akan digabung (dedup) alih-alih diduplikasi.
+ */
 export class MemoryService implements MemoryApi {
   constructor(
     private readonly store: Store,
@@ -16,19 +22,32 @@ export class MemoryService implements MemoryApi {
     text: string
     tags?: string[]
     source?: string
-  }): Promise<{ id: string }> {
+    sourceAccountId?: string
+  }): Promise<{ id: string; merged: boolean }> {
+    const text = input.text.trim()
+    const now = Date.now()
+
+    // Dedup: fakta yang sama (scope + scopeId + teks) digabung, bukan diduplikasi.
+    const existing = this.store.findMemoryByText(input.scope, input.scopeId, text)
+    if (existing) {
+      this.store.appendMemoryProvenance(existing.id, { accountId: input.sourceAccountId, at: now })
+      return { id: existing.id, merged: true }
+    }
+
     const id = randomUUID()
     this.store.insertMemory({
       id,
       scope: input.scope,
       scopeId: input.scopeId,
-      text: input.text.trim(),
+      text,
       tags: input.tags ?? [],
       source: input.source,
-      createdAt: Date.now(),
+      accountId: input.sourceAccountId,
+      provenance: [{ accountId: input.sourceAccountId, at: now }],
+      createdAt: now,
     })
-    this.bus?.emit("memory.written", { id, scope: input.scope, text: input.text })
-    return { id }
+    this.bus?.emit("memory.written", { id, scope: input.scope, text })
+    return { id, merged: false }
   }
 
   async search(
@@ -40,5 +59,19 @@ export class MemoryService implements MemoryApi {
 
   async forget(id: string): Promise<void> {
     this.store.deleteMemory(id)
+  }
+
+  /** Ekspor seluruh memori (untuk backup/pindah mesin). */
+  export(): MemoryRow[] {
+    return this.store.allMemory()
+  }
+
+  /** Sidik jari stabil isi memori untuk deteksi perubahan/tamper. */
+  fingerprint(): string {
+    return this.store.memoryFingerprint()
+  }
+
+  count(): number {
+    return this.store.countMemory()
   }
 }

@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync } from "node:fs"
+import { createHash } from "node:crypto"
 import { dirname } from "node:path"
 import Database from "better-sqlite3"
 import type { InboundMessage } from "@ibrax/sdk"
@@ -21,6 +22,10 @@ export interface MemoryRow {
   text: string
   tags: string[]
   source?: string
+  /** Akun WhatsApp yang pertama mempelajari fakta ini. */
+  accountId?: string
+  /** Jejak lintas-nomor: siapa mempelajari kapan. */
+  provenance: Array<{ accountId?: string; at: number }>
   createdAt: number
 }
 
@@ -109,6 +114,8 @@ export class Store {
         text TEXT NOT NULL,
         tags TEXT NOT NULL DEFAULT '',
         source TEXT,
+        account_id TEXT,
+        provenance TEXT NOT NULL DEFAULT '[]',
         created_at INTEGER NOT NULL
       );
       CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(id UNINDEXED, text, tags);
@@ -149,6 +156,17 @@ export class Store {
         detail TEXT
       );
     `)
+
+    // Migrasi ringan: tambahkan kolom baru bila belum ada (untuk DB lama).
+    this.ensureColumn("memory", "account_id", "TEXT")
+    this.ensureColumn("memory", "provenance", "TEXT NOT NULL DEFAULT '[]'")
+  }
+
+  private ensureColumn(table: string, column: string, def: string): void {
+    const cols = this.db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
+    if (!cols.some((c) => c.name === column)) {
+      this.db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${def}`)
+    }
   }
 
   // --- Akun ----------------------------------------------------------------
@@ -227,16 +245,57 @@ export class Store {
   // --- Memori --------------------------------------------------------------
   insertMemory(row: MemoryRow): void {
     const tags = row.tags.join(" ")
+    const provenance = JSON.stringify(row.provenance ?? [])
     const tx = this.db.transaction(() => {
       this.db
         .prepare(
-          `INSERT INTO memory (id, scope, scope_id, text, tags, source, created_at)
-           VALUES (@id, @scope, @scopeId, @text, @tags, @source, @createdAt)`,
+          `INSERT INTO memory (id, scope, scope_id, text, tags, source, account_id, provenance, created_at)
+           VALUES (@id, @scope, @scopeId, @text, @tags, @source, @accountId, @provenance, @createdAt)`,
         )
-        .run({ ...row, tags })
+        .run({ ...row, accountId: row.accountId ?? null, tags, provenance })
       this.db.prepare(`INSERT INTO memory_fts (id, text, tags) VALUES (?, ?, ?)`).run(row.id, row.text, tags)
     })
     tx()
+  }
+
+  /** Mencari fakta yang sudah ada berdasarkan (scope, scopeId, text) untuk dedup. */
+  findMemoryByText(scope: string, scopeId: string | undefined, text: string): MemoryRow | undefined {
+    const row = this.db
+      .prepare(
+        `SELECT id, scope, scope_id as scopeId, text, tags, source, account_id as accountId, provenance, created_at as createdAt
+         FROM memory WHERE scope=? AND IFNULL(scope_id,'')=IFNULL(?,'') AND text=? LIMIT 1`,
+      )
+      .get(scope, scopeId ?? null, text) as any
+    return row ? mapMemory(row) : undefined
+  }
+
+  /** Menambahkan jejak (provenance) ke sebuah fakta yang dipelajari ulang. */
+  appendMemoryProvenance(id: string, entry: { accountId?: string; at: number }): void {
+    const row = this.db.prepare(`SELECT provenance FROM memory WHERE id=?`).get(id) as any
+    if (!row) return
+    const prov = safeParseArray(row.provenance)
+    prov.push(entry)
+    this.db.prepare(`UPDATE memory SET provenance=? WHERE id=?`).run(JSON.stringify(prov), id)
+  }
+
+  allMemory(limit = 10_000): MemoryRow[] {
+    const rows = this.db
+      .prepare(
+        `SELECT id, scope, scope_id as scopeId, text, tags, source, account_id as accountId, provenance, created_at as createdAt
+         FROM memory ORDER BY created_at DESC LIMIT ?`,
+      )
+      .all(limit) as any[]
+    return rows.map(mapMemory)
+  }
+
+  /** Hash stabil atas isi memori (urutan id deterministik) untuk deteksi perubahan/tamper. */
+  memoryFingerprint(): string {
+    const rows = this.db
+      .prepare(`SELECT id, text, tags FROM memory ORDER BY id`)
+      .all() as Array<{ id: string; text: string; tags: string }>
+    const hash = createHash("sha256")
+    for (const r of rows) hash.update(`${r.id}\u0000${r.text}\u0000${r.tags}\n`)
+    return hash.digest("hex")
   }
 
   searchMemory(
@@ -255,36 +314,31 @@ export class Store {
       params.push(opts.scopeId)
     }
     const extra = conditions.length ? `AND ${conditions.join(" AND ")}` : ""
-    const sql = `
-      SELECT m.id, m.scope, m.scope_id as scopeId, m.text, m.tags, m.source, m.created_at as createdAt
-      FROM memory_fts f JOIN memory m ON m.id = f.id
-      WHERE memory_fts MATCH ? ${extra}
-      ORDER BY rank LIMIT ?`
+    const cols = `m.id, m.scope, m.scope_id as scopeId, m.text, m.tags, m.source, m.account_id as accountId, m.provenance, m.created_at as createdAt`
     let rows: any[]
     try {
-      rows = this.db.prepare(sql).all(ftsQuery(query), ...params, limit) as any[]
-    } catch {
-      // Query FTS tidak valid → fallback ke LIKE.
-      const like = `%${query}%`
       rows = this.db
         .prepare(
-          `SELECT id, scope, scope_id as scopeId, text, tags, source, created_at as createdAt
-           FROM memory WHERE text LIKE ? ${conditions.length ? "AND " + conditions.join(" AND ") : ""}
-           ORDER BY created_at DESC LIMIT ?`,
+          `SELECT ${cols} FROM memory_fts f JOIN memory m ON m.id = f.id WHERE memory_fts MATCH ? ${extra} ORDER BY rank LIMIT ?`,
         )
-        .all(like, ...params, limit) as any[]
+        .all(ftsQuery(query), ...params, limit) as any[]
+    } catch {
+      // Query FTS tidak valid → fallback ke LIKE.
+      rows = this.db
+        .prepare(`SELECT ${cols} FROM memory m WHERE m.text LIKE ? ${extra} ORDER BY m.created_at DESC LIMIT ?`)
+        .all(`%${query}%`, ...params, limit) as any[]
     }
-    return rows.map((r) => ({ ...r, tags: r.tags ? String(r.tags).split(/\s+/).filter(Boolean) : [] }))
+    return rows.map(mapMemory)
   }
 
   getMemory(id: string): MemoryRow | undefined {
     const r = this.db
       .prepare(
-        `SELECT id, scope, scope_id as scopeId, text, tags, source, created_at as createdAt FROM memory WHERE id=?`,
+        `SELECT id, scope, scope_id as scopeId, text, tags, source, account_id as accountId, provenance, created_at as createdAt
+         FROM memory WHERE id=?`,
       )
       .get(id) as any
-    if (!r) return undefined
-    return { ...r, tags: r.tags ? String(r.tags).split(/\s+/).filter(Boolean) : [] }
+    return r ? mapMemory(r) : undefined
   }
 
   deleteMemory(id: string): void {
@@ -436,4 +490,28 @@ export function ftsQuery(input: string): string {
     .filter(Boolean)
   if (!terms.length) return '""'
   return terms.map((t) => `"${t}"*`).join(" ")
+}
+
+function safeParseArray(value: unknown): Array<{ accountId?: string; at: number }> {
+  if (typeof value !== "string") return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function mapMemory(r: any): MemoryRow {
+  return {
+    id: r.id,
+    scope: r.scope,
+    scopeId: r.scopeId ?? undefined,
+    text: r.text,
+    tags: r.tags ? String(r.tags).split(/\s+/).filter(Boolean) : [],
+    source: r.source ?? undefined,
+    accountId: r.accountId ?? undefined,
+    provenance: safeParseArray(r.provenance),
+    createdAt: r.createdAt,
+  }
 }
