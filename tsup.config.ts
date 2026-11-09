@@ -23,6 +23,18 @@ export default defineConfig([
     noExternal: [/^@ibrax\//],
   },
   {
+    entry: { sdk: "packages/sdk/src/index.ts" },
+    format: ["esm"],
+    platform: "node",
+    target: "node20",
+    outDir: "dist",
+    clean: false,
+    splitting: false,
+    sourcemap: false,
+    dts: true,
+    minify: false,
+  },
+  {
     entry: {
       "skills/reminders/index": "skills/reminders/index.ts",
       "skills/scheduler/index": "skills/scheduler/index.ts",

@@ -1,5 +1,9 @@
 # Menulis Skill Ibra X
 
+> **Untuk penulis skill di luar repo ini:** `npm install ibra-x`, lalu impor dari
+> `ibra-x/sdk` — mis. `import { defineSkill, defineTool } from "ibra-x/sdk"`.
+> Di dalam repo ini, gunakan `@ibrax/sdk` (paket workspace).
+
 Skill adalah unit ekstensi Ibra X. Sebuah skill mengekspos satu atau lebih **tool** yang dapat dipanggil agen, dan opsional menyumbang **system prompt**, **command**, serta **hook setup**.
 
 ## Kerangka Minimal

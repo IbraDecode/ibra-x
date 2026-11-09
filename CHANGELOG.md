@@ -4,6 +4,12 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.11.0] — 2026-11-09
+
+### Ditambahkan
+- Subpath ekspor `ibra-x/sdk` (dengan `dist/sdk.d.ts`) untuk penulis skill eksternal.
+- README: badge npm/CI + status.
+
 ## [0.10.0] — 2026-11-09
 
 ### Ditambahkan

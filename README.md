@@ -4,7 +4,12 @@
 
 `ibra-x` adalah platform agen WhatsApp yang dapat di-host sendiri (self-hosted). Ia menautkan satu atau beberapa nomor WhatsApp lewat [Baileys](https://github.com/WhiskeySockets/Baileys), lalu menjalankan loop agen yang otonom: mengamati chat, mengingat konteks, memanggil *skill* (tool), dan membalas dengan kebijakan izin yang ketat.
 
-**Status: `0.1.0` — tahap awal (fondasi).** Implementasi berjalan di branch `dev`.
+[![npm version](https://img.shields.io/npm/v/ibra-x.svg)](https://www.npmjs.com/package/ibra-x)
+[![license](https://img.shields.io/npm/l/ibra-x.svg)](LICENSE)
+[![node](https://img.shields.io/node/v/ibra-x.svg)](https://nodejs.org)
+[![ci](https://github.com/IbraDecode/ibra-x/actions/workflows/ci.yml/badge.svg)](https://github.com/IbraDecode/ibra-x/actions/workflows/ci.yml)
+
+**Status: `0.10.0`.** Tersedia di npm sebagai [`ibra-x`](https://www.npmjs.com/package/ibra-x). Pengembangan aktif di branch `dev`.
 
 ---
 

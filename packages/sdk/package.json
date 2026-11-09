@@ -1,6 +1,6 @@
 {
   "name": "@ibrax/sdk",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "SDK Ibra X — tipe inti dan helper untuk menulis skill agen WhatsApp.",
   "license": "MIT",
   "type": "module",
