@@ -22,7 +22,7 @@
     "cli": "tsx packages/cli/src/index.ts",
     "server": "tsx packages/server/src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test \"packages/**/*.test.ts\"",
+    "test": "node --import tsx --test packages/core/src/*.test.ts",
     "doctor": "tsx packages/cli/src/index.ts doctor"
   },
   "devDependencies": {

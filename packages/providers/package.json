@@ -1,0 +1,19 @@
+{
+  "name": "@ibrax/providers",
+  "version": "0.1.0",
+  "description": "Adaptor penyedia LLM untuk Ibra X (engine OpenAI-compatible + preset).",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "@ibrax/sdk": "*",
+    "zod": "^3.23.8"
+  }
+}

@@ -52,6 +52,7 @@ ibra-x/
 │   ├── providers/   # adaptor LLM
 │   ├── core/        # domain: config, db, memori, sesi, policy, agen
 │   ├── whatsapp/    # transport Baileys (multi-akun)
+│   ├── app/         # komposisi seluruh paket
 │   ├── server/      # HTTP API + SSE
 │   └── cli/         # perintah `ibrax`
 ├── skills/          # skill bawaan & contoh

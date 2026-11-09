@@ -1,0 +1,18 @@
+services:
+  ibra-x:
+    build: .
+    container_name: ibra-x
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      IBRA_DATA_DIR: /data
+      IBRA_HOST: 0.0.0.0
+      IBRA_PORT: "8787"
+    volumes:
+      - ibra-data:/data
+    ports:
+      - "127.0.0.1:8787:8787"
+
+volumes:
+  ibra-data:

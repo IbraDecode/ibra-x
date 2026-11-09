@@ -1,0 +1,313 @@
+import { randomUUID } from "node:crypto"
+import type { InboundMessage, Logger, RuntimeApi, SkillStore, ToolContext } from "@ibrax/sdk"
+import { Agent, type AgentRunResult } from "./agent.ts"
+import type { AccountConfig, IbraConfig } from "./config.ts"
+import type { Store } from "./db.ts"
+import type { EventBus } from "./events.ts"
+import { MemoryService } from "./memory.ts"
+import { Policy } from "./policy.ts"
+import { SessionManager } from "./session.ts"
+import type { SkillRegistry } from "./skills.ts"
+import type { Provider } from "@ibrax/sdk"
+
+/** Kontrak transport yang diimplementasikan paket `@ibrax/whatsapp`. */
+export interface Transport {
+  sendMessage(
+    accountId: string,
+    chatId: string,
+    payload: { text: string } | { mediaPath: string; mime: string; caption?: string },
+    opts?: { replyTo?: string },
+  ): Promise<{ messageId: string; messageIds?: string[] }>
+  markRead(accountId: string, chatId: string, messageIds: string[]): Promise<void>
+}
+
+export interface RuntimeOptions {
+  config: IbraConfig
+  store: Store
+  bus: EventBus
+  logger: Logger
+  provider: Provider
+  registry: SkillRegistry
+  transport?: Transport
+  /** Bila true, aksi `ask` dijalankan otomatis (dipakai CLI --yes / mode auto). */
+  autoApprove?: boolean
+}
+
+/**
+ * Runtime menyatukan seluruh komponen: menyimpan pesan masuk, menjalankan
+ * agen, dan mengirim balasan lewat transport. Ia juga mengimplementasikan
+ * `RuntimeApi` yang dipakai tool.
+ */
+export class Runtime implements RuntimeApi {
+  readonly store: Store
+  readonly bus: EventBus
+  readonly logger: Logger
+  readonly policy: Policy
+  readonly session: SessionManager
+  readonly memory: MemoryService
+  readonly registry: SkillRegistry
+  readonly agent: Agent
+
+  private readonly config: IbraConfig
+  private readonly transport?: Transport
+  private currentAccountId: string
+  private processing = false
+
+  constructor(opts: RuntimeOptions) {
+    this.config = opts.config
+    this.store = opts.store
+    this.bus = opts.bus
+    this.logger = opts.logger
+    this.policy = new Policy(opts.config)
+    this.session = new SessionManager(opts.store, opts.config)
+    this.memory = new MemoryService(opts.store, opts.bus)
+    this.registry = opts.registry
+    this.transport = opts.transport
+    this.currentAccountId = opts.config.accounts[0]?.id ?? "default"
+
+    this.agent = new Agent({
+      config: opts.config,
+      provider: opts.provider,
+      registry: opts.registry,
+      policy: this.policy,
+      session: this.session,
+      bus: opts.bus,
+      logger: opts.logger.child({ comp: "agent" }),
+      autoApprove: opts.autoApprove,
+      makeToolContext: (info) => this.makeToolContext(info),
+    })
+  }
+
+  get accountId(): string {
+    return this.currentAccountId
+  }
+
+  accountConfig(accountId: string): AccountConfig {
+    return (
+      this.config.accounts.find((a) => a.id === accountId) ?? {
+        id: accountId,
+        role: "hybrid",
+        enabled: true,
+        respondTo: "allowlist",
+        mentionOnly: false,
+      }
+    )
+  }
+
+  // --- RuntimeApi ----------------------------------------------------------
+
+  async sendMessage(
+    chatId: string,
+    payload: { text: string } | { mediaPath: string; mime: string; caption?: string },
+    opts?: { replyTo?: string; accountId?: string },
+  ): Promise<{ messageId: string; messageIds?: string[] }> {
+    const accountId = opts?.accountId ?? this.currentAccountId
+    const text = "text" in payload ? payload.text : (payload.caption ?? "[media]")
+
+    if (!this.transport) {
+      const id = randomUUID()
+      this.bus.emit("outbound.message", { accountId, chatId, text, messageId: id })
+      this.recordOutgoing(accountId, chatId, id, text)
+      return { messageId: id }
+    }
+
+    const res = await this.transport.sendMessage(accountId, chatId, payload, { replyTo: opts?.replyTo })
+    this.bus.emit("outbound.message", { accountId, chatId, text, messageId: res.messageId })
+    this.recordOutgoing(accountId, chatId, res.messageId, text)
+    this.store.audit({ actor: accountId, action: "sendMessage", detail: { chatId, kind: "text" } })
+    return res
+  }
+
+  async getChatHistory(
+    chatId: string,
+    opts?: { limit?: number },
+  ): Promise<Array<{ id: string; fromMe: boolean; senderId: string; text: string; timestamp: number }>> {
+    return this.store
+      .getHistory(chatId, opts?.limit ?? 50)
+      .map((m) => ({ id: m.id, fromMe: m.fromMe, senderId: m.senderId, text: m.text, timestamp: m.timestamp }))
+  }
+
+  async markRead(chatId: string, messageIds: string[]): Promise<void> {
+    await this.transport?.markRead(this.currentAccountId, chatId, messageIds)
+  }
+
+  // --- Tool context --------------------------------------------------------
+
+  private makeToolContext(info: {
+    sessionId: string
+    accountId: string
+    chatId?: string
+    senderId?: string
+    skillId: string
+    signal?: AbortSignal
+  }): ToolContext {
+    return {
+      logger: this.logger.child({ skill: info.skillId, session: info.sessionId }),
+      runtime: this,
+      store: this.skillStore(info.skillId),
+      sessionId: info.sessionId,
+      accountId: info.accountId,
+      chatId: info.chatId,
+      senderId: info.senderId,
+      signal: info.signal,
+      // MVP: permintaan persetujuan menjadi tugas terparkir (tidak memblokir).
+      requestApproval: async (reason: string) => {
+        this.store.audit({ actor: info.accountId, action: "approval.request", detail: { reason, tool: info.skillId } })
+        return { approved: false }
+      },
+    }
+  }
+
+  private skillStore(skillId: string): SkillStore {
+    const prefix = `skill:${skillId}:`
+    return {
+      get: async <T>(key: string) => this.store.kvGet<T>(prefix + key),
+      set: async (key, value) => this.store.kvSet(prefix + key, value),
+      delete: async (key) => this.store.kvDelete(prefix + key),
+      list: async (k = "") => this.store.kvList(prefix + k),
+    }
+  }
+
+  private recordOutgoing(accountId: string, chatId: string, id: string, text: string): void {
+    this.store.insertMessage({
+      id,
+      accountId,
+      chatId,
+      senderId: accountId,
+      fromMe: true,
+      text,
+      timestamp: Date.now(),
+    })
+  }
+
+  // --- Pemrosesan pesan masuk ---------------------------------------------
+
+  /** Titik masuk dari transport. Idempoten: pesan duplikat diabaikan. */
+  async handleInbound(msg: InboundMessage): Promise<void> {
+    this.store.upsertAccount({ id: msg.accountId, role: this.accountConfig(msg.accountId).role })
+    const isNew = this.store.enqueueInbox(msg.accountId, msg)
+    if (!isNew) {
+      this.logger.debug({ id: msg.id }, "pesan duplikat diabaikan")
+      return
+    }
+    await this.processInboxOnce(1)
+  }
+
+  /** Mengambil pesan pending dari antrean dan memprosesnya secara berurutan. */
+  async processInboxOnce(limit = 10): Promise<number> {
+    if (this.processing) return 0
+    this.processing = true
+    let processed = 0
+    try {
+      const rows = this.store.takePendingInbox(limit)
+      for (const row of rows) {
+        this.store.setInboxState(row.id, "processing")
+        try {
+          const msg = JSON.parse(row.payload) as InboundMessage
+          await this.processMessage(msg)
+          this.store.setInboxState(row.id, "done")
+          processed++
+        } catch (error) {
+          this.logger.error({ error, inbox: row.id }, "gagal memproses pesan, dikembalikan ke antrean")
+          this.store.setInboxState(row.id, "pending")
+        }
+      }
+    } finally {
+      this.processing = false
+    }
+    return processed
+  }
+
+  private async processMessage(msg: InboundMessage): Promise<void> {
+    this.currentAccountId = msg.accountId
+    const account = this.accountConfig(msg.accountId)
+    const sessionId = this.session.sessionId(msg.accountId, msg.chatId)
+
+    this.store.upsertChat({
+      id: msg.chatId,
+      accountId: msg.accountId,
+      kind: msg.chatKind,
+      name: undefined,
+    })
+    this.store.insertMessage({
+      id: msg.id,
+      accountId: msg.accountId,
+      chatId: msg.chatId,
+      senderId: msg.senderId,
+      fromMe: msg.fromMe,
+      text: msg.text ?? "",
+      timestamp: msg.timestamp,
+    })
+
+    // Pesan dari diri sendiri: simpan sebagai konteks, jangan balas (cegah echo loop).
+    if (msg.fromMe) return
+
+    const decision = this.policy.canTrigger(msg.senderId, { respondTo: account.respondTo })
+    if (decision.effect !== "allow") {
+      this.logger.debug({ sender: msg.senderId, reason: decision.reason }, "pengirim tidak diizinkan memicu agen")
+      return
+    }
+
+    if (account.mentionOnly && msg.chatKind === "group") {
+      const targets = new Set([...this.config.allowlist, ...this.config.ownerNumbers].map((s) => s.replace(/[^0-9]/g, "")))
+      const mentioned = (msg.mentions ?? []).some((m) => targets.has(m.replace(/[^0-9]/g, "")))
+      if (!mentioned) {
+        this.logger.debug({ chat: msg.chatId }, "grup: agen tidak disebut, dilewati")
+        return
+      }
+    }
+
+    this.logger.info({ account: msg.accountId, chat: msg.chatId, sender: msg.senderId }, "menjalankan agen")
+    const result: AgentRunResult = await this.agent.run({
+      accountId: msg.accountId,
+      chatId: msg.chatId,
+      chatKind: msg.chatKind,
+      role: account.role,
+      senderId: msg.senderId,
+      sessionId,
+      model: account.model,
+    })
+
+    await this.deliverReply(msg, account, result)
+  }
+
+  private async deliverReply(msg: InboundMessage, account: AccountConfig, result: AgentRunResult): Promise<void> {
+    const text = result.text?.trim()
+    if (!text) return
+
+    const isObserver = account.role === "observer"
+    const canSend = !isObserver && this.policy.canSendAutomatically()
+
+    if (canSend) {
+      try {
+        await this.sendMessage(msg.chatId, { text }, { accountId: msg.accountId })
+      } catch (error) {
+        this.logger.error({ error, chat: msg.chatId }, "gagal mengirim balasan")
+        this.bus.emit("error", { scope: "runtime.send", error })
+      }
+      return
+    }
+
+    // Mode suggest/readonly, atau akun observer: catat sebagai saran.
+    this.store.audit({
+      actor: msg.accountId,
+      action: isObserver ? "observe.suggestion" : "reply.suggestion",
+      detail: { chatId: msg.chatId, senderId: msg.senderId, text, reason: result.reason },
+    })
+    this.bus.emit("agent.finished", { sessionId: this.session.sessionId(msg.accountId, msg.chatId), reason: "suggestion", text })
+
+    // Kirim saran ke owner bila dikonfigurasi.
+    const owner = this.config.ownerNumbers[0]
+    if (owner) {
+      try {
+        await this.sendMessage(
+          `${owner.replace(/[^0-9]/g, "")}@s.whatsapp.net`,
+          { text: `Saran balasan untuk ${msg.chatId}:\n\n${text}` },
+          { accountId: msg.accountId },
+        )
+      } catch {
+        // Diamkan kegagalan notifikasi owner.
+      }
+    }
+  }
+}

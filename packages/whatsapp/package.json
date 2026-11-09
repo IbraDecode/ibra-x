@@ -1,0 +1,22 @@
+{
+  "name": "@ibrax/whatsapp",
+  "version": "0.1.0",
+  "description": "Transport WhatsApp Ibra X berbasis Baileys: multi-akun, peran, antrean kirim terserialisasi.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "@ibrax/core": "*",
+    "@ibrax/sdk": "*",
+    "@whiskeysockets/baileys": "^7.0.0-rc.14",
+    "pino": "^9.5.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

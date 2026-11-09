@@ -1,0 +1,29 @@
+{
+  "name": "@ibrax/cli",
+  "version": "0.1.0",
+  "description": "CLI Ibra X (`ibrax`): init, start, pair, status, doctor, skills, memory, chat.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "bin"
+  ],
+  "bin": {
+    "ibrax": "./bin/ibrax.mjs"
+  },
+  "dependencies": {
+    "@ibrax/app": "*",
+    "@ibrax/core": "*",
+    "@ibrax/providers": "*",
+    "@ibrax/sdk": "*",
+    "@ibrax/server": "*",
+    "commander": "^12.1.0",
+    "picocolors": "^1.1.1",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
