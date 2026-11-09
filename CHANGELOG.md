@@ -4,6 +4,15 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.13.0] — 2026-11-09
+
+### Ditambahkan
+- Linter **Biome** (lint-only) + skrip `npm run lint` / `lint:fix`, dan langkah Lint di CI.
+
+### Diperbaiki
+- Anotasi tipe eksplisit (`let` tanpa tipe), penulisan loop parser tanpa assignment-in-expression,
+  dan template literal yang tidak perlu (temuan Biome).
+
 ## [0.12.0] — 2026-11-09
 
 ### Ditambahkan

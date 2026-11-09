@@ -37,8 +37,7 @@ export function createLogger(opts: CreateLoggerOptions = {}): Logger {
     const ts = new Date().toISOString()
     if (json) {
       process.stdout.write(
-        JSON.stringify({ ts, level, ...base, ...bindings, msg: msg ?? (typeof obj === "string" ? obj : undefined), data: typeof obj === "string" ? undefined : obj }) +
-          "\n",
+        `${JSON.stringify({ ts, level, ...base, ...bindings, msg: msg ?? (typeof obj === "string" ? obj : undefined), data: typeof obj === "string" ? undefined : obj })}\n`,
       )
       return
     }
@@ -48,7 +47,7 @@ export function createLogger(opts: CreateLoggerOptions = {}): Logger {
       .join(" ")
     const detail = typeof obj === "string" ? obj : serialize(obj)
     const line = [prefix, scope, msg, detail].filter(Boolean).join(" ")
-    ;(level === "error" ? process.stderr : process.stdout).write(line + "\n")
+    ;(level === "error" ? process.stderr : process.stdout).write(`${line}\n`)
   }
 
   const make = (bindings: Record<string, unknown>): Logger => ({

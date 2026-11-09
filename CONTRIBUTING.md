@@ -39,7 +39,7 @@ Tipe: `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`, `build`, `ci`.
 1. Sinkronkan `dev`: `git checkout dev && git pull`.
 2. Buat branch: `git checkout -b feat/nama-fitur`.
 3. Kerjakan, commit dengan pesan konvensional.
-4. Pastikan lolos: `npm run typecheck` dan `npm test`.
+4. Pastikan lolos: `npm run lint`, `npm run typecheck`, dan `npm test`.
 5. Buka PR ke `dev` dengan deskripsi: apa, mengapa, cara uji, dampak.
 6. Minimal satu review sebelum merge.
 

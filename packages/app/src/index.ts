@@ -15,7 +15,9 @@ import {
   resolveSkillDirs,
   subagentSkill,
   type IbraConfig,
+  type ImageDescriber,
   type SkillRegistry,
+  type Transcriber,
 } from "@ibrax/core"
 import type { Logger, SkillStore } from "@ibrax/sdk"
 import { findPreset, resolveProvider } from "@ibrax/providers"
@@ -92,7 +94,7 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
   })
 
   // Transkripsi audio (opsional) memakai endpoint penyedia aktif.
-  let transcriber
+  let transcriber: Transcriber | undefined
   if (config.media.transcribe) {
     const preset = findPreset(config.provider)
     const apiKey = preset?.apiKeyEnv ? process.env[preset.apiKeyEnv] : undefined
@@ -108,7 +110,7 @@ export async function createApp(config: IbraConfig, opts: CreateAppOptions = {})
   }
 
   // Deskripsi gambar (opsional) memakai model multimodal.
-  let imageDescriber
+  let imageDescriber: ImageDescriber | undefined
   if (config.media.describeImages) {
     const preset = findPreset(config.provider)
     const apiKey = preset?.apiKeyEnv ? process.env[preset.apiKeyEnv] : undefined

@@ -48,7 +48,7 @@ function writeEnvVar(key: string, value: string, cwd = process.cwd()): void {
   let content = existsSync(path) ? readFileSync(path, "utf8") : ""
   const re = new RegExp(`^${key}=.*$`, "m")
   if (re.test(content)) content = content.replace(re, line)
-  else content += (content.endsWith("\n") || content === "" ? "" : "\n") + line + "\n"
+  else content += `${(content.endsWith("\n") || content === "" ? "" : "\n") + line}\n`
   writeFileSync(path, content, "utf8")
 }
 
@@ -102,7 +102,7 @@ export async function cmdInit(): Promise<void> {
 
   console.log(pc.green(`\n✓ Konfigurasi disimpan: ${path}`))
   console.log(pc.bold("\nLangkah berikutnya:"))
-  console.log(`  1. ${pc.cyan("ibrax pair " + accountId + " <nomor-tanpa-plus>")}  — tautkan WhatsApp via kode pairing`)
+  console.log(`  1. ${pc.cyan(`ibrax pair ${accountId} <nomor-tanpa-plus>`)}  — tautkan WhatsApp via kode pairing`)
   console.log(`     atau ${pc.cyan("ibrax start")} lalu pindai QR yang muncul`)
   console.log(`  2. ${pc.cyan("ibrax start")}  — jalankan agen + server\n`)
 }
@@ -218,7 +218,7 @@ export async function cmdDoctor(): Promise<void> {
     store.close()
     console.log(`  SQLite   : ${pc.green("✓")} (data dir dapat ditulis)`)
   } catch (error) {
-    console.log(`  SQLite   : ${pc.red("✗ " + String(error))}`)
+    console.log(`  SQLite   : ${pc.red(`✗ ${String(error)}`)}`)
   }
 
   console.log(pc.bold("\n  Penyedia LLM:"))
@@ -251,7 +251,7 @@ export async function cmdSkills(): Promise<void> {
   })
   console.log(pc.bold(`\n🧩 Skill terpasang (${registry.list().length})\n`))
   for (const skill of registry.list()) {
-    console.log(`  ${pc.cyan(skill.id)} — ${skill.name}${skill.description ? pc.dim(" · " + skill.description) : ""}`)
+    console.log(`  ${pc.cyan(skill.id)} — ${skill.name}${skill.description ? pc.dim(` · ${skill.description}`) : ""}`)
     for (const tool of skill.tools ?? []) {
       console.log(`      • ${tool.name} ${pc.dim(`[${tool.risk}]`)}`)
     }
@@ -272,7 +272,7 @@ export async function cmdMemorySearch(query: string, limit = 20): Promise<void> 
   const rows = store.searchMemory(query, { limit })
   console.log(pc.bold(`\n🔎 ${rows.length} hasil untuk "${query}"\n`))
   for (const row of rows) {
-    console.log(`  ${pc.dim(row.id.slice(0, 8))} ${pc.cyan(`[${row.scope}${row.scopeId ? ":" + row.scopeId : ""}]`)} ${row.text}`)
+    console.log(`  ${pc.dim(row.id.slice(0, 8))} ${pc.cyan(`[${row.scope}${row.scopeId ? `:${row.scopeId}` : ""}]`)} ${row.text}`)
   }
   console.log()
   store.close()
@@ -302,7 +302,7 @@ export async function cmdMemoryExport(file?: string): Promise<void> {
   const payload = { version: 1, fingerprint: store.memoryFingerprint(), items: store.allMemory() }
   const json = JSON.stringify(payload, null, 2)
   if (file) {
-    writeFileSync(resolve(process.cwd(), file), json + "\n", "utf8")
+    writeFileSync(resolve(process.cwd(), file), `${json}\n`, "utf8")
     console.log(pc.green(`✓ ${payload.items.length} memori diekspor ke ${file}`))
   } else {
     console.log(json)

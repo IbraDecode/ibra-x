@@ -137,9 +137,7 @@ export default defineSkill({
           let summary: string
           if (ctx.runtime.subagent) {
             const res = await ctx.runtime.subagent.run(
-              "Ringkas percakapan WhatsApp berikut menjadi poin-poin penting (maksimal 8 poin), " +
-                "sebutkan keputusan dan hal yang perlu ditindaklanjuti. Jawab ringkas dalam Bahasa Indonesia.\n\n" +
-                transcript,
+              `Ringkas percakapan WhatsApp berikut menjadi poin-poin penting (maksimal 8 poin), sebutkan keputusan dan hal yang perlu ditindaklanjuti. Jawab ringkas dalam Bahasa Indonesia.\n\n${transcript}`,
             )
             summary = res.text
           } else {

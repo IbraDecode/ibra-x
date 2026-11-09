@@ -180,7 +180,7 @@ export class Store {
   }
 
   listAccounts(): Array<{ id: string; role: string; label: string | null; enabled: number }> {
-    return this.db.prepare(`SELECT id, role, label, enabled FROM accounts ORDER BY id`).all() as any
+    return this.db.prepare("SELECT id, role, label, enabled FROM accounts ORDER BY id").all() as any
   }
 
   // --- Chat ----------------------------------------------------------------
@@ -195,8 +195,8 @@ export class Store {
 
   listChats(accountId?: string): Array<{ id: string; accountId: string; kind: string; name: string | null }> {
     const sql = accountId
-      ? `SELECT id, account_id as accountId, kind, name FROM chats WHERE account_id=? ORDER BY updated_at DESC`
-      : `SELECT id, account_id as accountId, kind, name FROM chats ORDER BY updated_at DESC`
+      ? "SELECT id, account_id as accountId, kind, name FROM chats WHERE account_id=? ORDER BY updated_at DESC"
+      : "SELECT id, account_id as accountId, kind, name FROM chats ORDER BY updated_at DESC"
     return (accountId ? this.db.prepare(sql).all(accountId) : this.db.prepare(sql).all()) as any
   }
 
@@ -224,12 +224,12 @@ export class Store {
   }
 
   countMessages(): number {
-    return (this.db.prepare(`SELECT COUNT(*) as n FROM messages`).get() as any).n
+    return (this.db.prepare("SELECT COUNT(*) as n FROM messages").get() as any).n
   }
 
   // --- Sesi ----------------------------------------------------------------
   getSessionSummary(sessionId: string): string | undefined {
-    const row = this.db.prepare(`SELECT summary FROM sessions WHERE id=?`).get(sessionId) as any
+    const row = this.db.prepare("SELECT summary FROM sessions WHERE id=?").get(sessionId) as any
     return row?.summary ?? undefined
   }
 
@@ -253,7 +253,7 @@ export class Store {
            VALUES (@id, @scope, @scopeId, @text, @tags, @source, @accountId, @provenance, @createdAt)`,
         )
         .run({ ...row, accountId: row.accountId ?? null, tags, provenance })
-      this.db.prepare(`INSERT INTO memory_fts (id, text, tags) VALUES (?, ?, ?)`).run(row.id, row.text, tags)
+      this.db.prepare("INSERT INTO memory_fts (id, text, tags) VALUES (?, ?, ?)").run(row.id, row.text, tags)
     })
     tx()
   }
@@ -271,11 +271,11 @@ export class Store {
 
   /** Menambahkan jejak (provenance) ke sebuah fakta yang dipelajari ulang. */
   appendMemoryProvenance(id: string, entry: { accountId?: string; at: number }): void {
-    const row = this.db.prepare(`SELECT provenance FROM memory WHERE id=?`).get(id) as any
+    const row = this.db.prepare("SELECT provenance FROM memory WHERE id=?").get(id) as any
     if (!row) return
     const prov = safeParseArray(row.provenance)
     prov.push(entry)
-    this.db.prepare(`UPDATE memory SET provenance=? WHERE id=?`).run(JSON.stringify(prov), id)
+    this.db.prepare("UPDATE memory SET provenance=? WHERE id=?").run(JSON.stringify(prov), id)
   }
 
   allMemory(limit = 10_000): MemoryRow[] {
@@ -291,7 +291,7 @@ export class Store {
   /** Hash stabil atas isi memori (urutan id deterministik) untuk deteksi perubahan/tamper. */
   memoryFingerprint(): string {
     const rows = this.db
-      .prepare(`SELECT id, text, tags FROM memory ORDER BY id`)
+      .prepare("SELECT id, text, tags FROM memory ORDER BY id")
       .all() as Array<{ id: string; text: string; tags: string }>
     const hash = createHash("sha256")
     for (const r of rows) hash.update(`${r.id}\u0000${r.text}\u0000${r.tags}\n`)
@@ -314,7 +314,7 @@ export class Store {
       params.push(opts.scopeId)
     }
     const extra = conditions.length ? `AND ${conditions.join(" AND ")}` : ""
-    const cols = `m.id, m.scope, m.scope_id as scopeId, m.text, m.tags, m.source, m.account_id as accountId, m.provenance, m.created_at as createdAt`
+    const cols = "m.id, m.scope, m.scope_id as scopeId, m.text, m.tags, m.source, m.account_id as accountId, m.provenance, m.created_at as createdAt"
     let rows: any[]
     try {
       rows = this.db
@@ -343,14 +343,14 @@ export class Store {
 
   deleteMemory(id: string): void {
     const tx = this.db.transaction(() => {
-      this.db.prepare(`DELETE FROM memory WHERE id=?`).run(id)
-      this.db.prepare(`DELETE FROM memory_fts WHERE id=?`).run(id)
+      this.db.prepare("DELETE FROM memory WHERE id=?").run(id)
+      this.db.prepare("DELETE FROM memory_fts WHERE id=?").run(id)
     })
     tx()
   }
 
   countMemory(): number {
-    return (this.db.prepare(`SELECT COUNT(*) as n FROM memory`).get() as any).n
+    return (this.db.prepare("SELECT COUNT(*) as n FROM memory").get() as any).n
   }
 
   // --- Inbox (masuk, idempoten) -------------------------------------------
@@ -373,7 +373,7 @@ export class Store {
   }
 
   setInboxState(id: string, state: InboxRow["state"]): void {
-    this.db.prepare(`UPDATE inbox SET state=?, updated_at=? WHERE id=?`).run(state, Date.now(), id)
+    this.db.prepare("UPDATE inbox SET state=?, updated_at=? WHERE id=?").run(state, Date.now(), id)
   }
 
   // --- Outbox --------------------------------------------------------------
@@ -388,8 +388,8 @@ export class Store {
 
   listOutbox(state?: OutboxRow["state"]): OutboxRow[] {
     const sql = state
-      ? `SELECT * FROM outbox WHERE state=? ORDER BY created_at ASC`
-      : `SELECT * FROM outbox ORDER BY created_at ASC`
+      ? "SELECT * FROM outbox WHERE state=? ORDER BY created_at ASC"
+      : "SELECT * FROM outbox ORDER BY created_at ASC"
     const rows = (state ? this.db.prepare(sql).all(state) : this.db.prepare(sql).all()) as any[]
     return rows.map(mapOutbox)
   }
@@ -398,17 +398,17 @@ export class Store {
     id: string,
     patch: { state?: OutboxRow["state"]; attempts?: number; lastError?: string | null },
   ): void {
-    const cur = this.db.prepare(`SELECT attempts FROM outbox WHERE id=?`).get(id) as any
+    const cur = this.db.prepare("SELECT attempts FROM outbox WHERE id=?").get(id) as any
     if (!cur) return
     const attempts = patch.attempts ?? cur.attempts
     this.db
-      .prepare(`UPDATE outbox SET state=COALESCE(?, state), attempts=?, last_error=?, updated_at=? WHERE id=?`)
+      .prepare("UPDATE outbox SET state=COALESCE(?, state), attempts=?, last_error=?, updated_at=? WHERE id=?")
       .run(patch.state ?? null, attempts, patch.lastError ?? null, Date.now(), id)
   }
 
   // --- KV ------------------------------------------------------------------
   kvGet<T = unknown>(key: string): T | undefined {
-    const row = this.db.prepare(`SELECT value FROM kv WHERE key=?`).get(key) as any
+    const row = this.db.prepare("SELECT value FROM kv WHERE key=?").get(key) as any
     if (!row) return undefined
     try {
       return JSON.parse(row.value) as T
@@ -419,17 +419,17 @@ export class Store {
 
   kvSet(key: string, value: unknown): void {
     this.db
-      .prepare(`INSERT INTO kv (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?`)
+      .prepare("INSERT INTO kv (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?")
       .run(key, JSON.stringify(value), JSON.stringify(value))
   }
 
   kvDelete(key: string): void {
-    this.db.prepare(`DELETE FROM kv WHERE key=?`).run(key)
+    this.db.prepare("DELETE FROM kv WHERE key=?").run(key)
   }
 
   kvList(prefix = ""): Array<{ key: string; value: unknown }> {
     const rows = this.db
-      .prepare(`SELECT key, value FROM kv WHERE key LIKE ? ORDER BY key`)
+      .prepare("SELECT key, value FROM kv WHERE key LIKE ? ORDER BY key")
       .all(`${prefix}%`) as any[]
     return rows.map((r) => {
       try {
@@ -443,12 +443,12 @@ export class Store {
   // --- Audit ---------------------------------------------------------------
   audit(entry: { actor?: string; action: string; detail?: unknown }): void {
     this.db
-      .prepare(`INSERT INTO audit (ts, actor, action, detail) VALUES (?, ?, ?, ?)`)
+      .prepare("INSERT INTO audit (ts, actor, action, detail) VALUES (?, ?, ?, ?)")
       .run(Date.now(), entry.actor ?? null, entry.action, entry.detail === undefined ? null : JSON.stringify(entry.detail))
   }
 
   listAudit(limit = 100): Array<{ id: number; ts: number; actor: string | null; action: string; detail: string | null }> {
-    return this.db.prepare(`SELECT * FROM audit ORDER BY id DESC LIMIT ?`).all(limit) as any
+    return this.db.prepare("SELECT * FROM audit ORDER BY id DESC LIMIT ?").all(limit) as any
   }
 
   close(): void {

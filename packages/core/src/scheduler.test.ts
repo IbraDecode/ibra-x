@@ -42,7 +42,7 @@ test("tick menjalankan tugas sesuai interval", async () => {
 })
 
 test("job yang gagal tidak menghentikan tick", async () => {
-  let now = 0
+  const now = 0
   const scheduler = new Scheduler({ logger, now: () => now })
   let good = 0
   scheduler.registerPeriodic("bad", 1, async () => {

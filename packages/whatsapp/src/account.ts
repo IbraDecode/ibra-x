@@ -150,7 +150,7 @@ export class AccountRuntime {
     if (qr) {
       this.opts.onQr?.(qr)
       if (this.opts.printQr) {
-        qrcode.generate(qr, { small: true }, (code: string) => process.stdout.write(code + "\n"))
+        qrcode.generate(qr, { small: true }, (code: string) => process.stdout.write(`${code}\n`))
       }
     }
 
@@ -208,7 +208,7 @@ export class AccountRuntime {
   async sendMessage(
     chatId: string,
     payload: { text: string } | { mediaPath: string; mime: string; caption?: string },
-    opts?: { replyTo?: string },
+    _opts?: { replyTo?: string },
   ): Promise<{ messageId: string; messageIds?: string[] }> {
     if (!this.sock) throw new Error(`Akun ${this.id}: socket belum siap`)
 

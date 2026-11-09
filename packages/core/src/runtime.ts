@@ -90,7 +90,7 @@ export class Runtime implements RuntimeApi {
 
   /** Delegasi ke subagen berkonteks terisolasi. */
   readonly subagent: SubagentApi = {
-    run: async (task, opts) => {
+    run: async (_task, opts) => {
       const maxDepth = this.config.maxSubagentDepth
       if (this.subagentDepth >= maxDepth) {
         throw new Error(`Batas kedalaman subagen tercapai (${maxDepth}).`)
@@ -382,7 +382,7 @@ export class Runtime implements RuntimeApi {
       try {
         const transcript = await this.transcriber.transcribe(msg.media.localPath, msg.media.mime)
         if (transcript) {
-          msg.text = `${msg.text ? msg.text + "\n" : ""}[transkripsi suara] ${transcript}`
+          msg.text = `${msg.text ? `${msg.text}\n` : ""}[transkripsi suara] ${transcript}`
           this.store.audit({ actor: msg.accountId, action: "media.transcribe", detail: { id: msg.id } })
         }
       } catch (error) {
@@ -399,7 +399,7 @@ export class Runtime implements RuntimeApi {
       try {
         const description = await this.imageDescriber.describe(msg.media.localPath, msg.media.mime)
         if (description) {
-          msg.text = `${msg.text ? msg.text + "\n" : ""}[gambar] ${description}`
+          msg.text = `${msg.text ? `${msg.text}\n` : ""}[gambar] ${description}`
           this.store.audit({ actor: msg.accountId, action: "media.describe", detail: { id: msg.id } })
         }
       } catch (error) {

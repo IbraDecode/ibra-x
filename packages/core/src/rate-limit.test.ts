@@ -3,7 +3,7 @@ import { test } from "node:test"
 import { SlidingWindowLimiter, inQuietHours } from "./rate-limit.ts"
 
 test("limiter mengizinkan sampai batas lalu menolak", () => {
-  let now = 0
+  const now = 0
   const limiter = new SlidingWindowLimiter(60_000, 2, () => now)
   assert.equal(limiter.allow("a"), true)
   assert.equal(limiter.allow("a"), true)

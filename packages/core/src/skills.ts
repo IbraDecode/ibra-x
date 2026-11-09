@@ -82,7 +82,7 @@ export class SkillRegistry {
   }
 }
 
-async function importSkillModule(target: string, cwd: string): Promise<Skill | undefined> {
+async function importSkillModule(target: string, _cwd: string): Promise<Skill | undefined> {
   const spec = isAbsolute(target) ? pathToFileURL(target).href : target
   const mod = (await import(spec)) as { default?: unknown; skill?: unknown }
   const candidate = mod.default ?? mod.skill

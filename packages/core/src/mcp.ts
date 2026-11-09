@@ -172,21 +172,23 @@ export class StdioMcpTransport implements McpTransport {
 
   private onData(chunk: string): void {
     this.buffer += chunk
-    let idx: number
-    while ((idx = this.buffer.indexOf("\n")) >= 0) {
+    let idx = this.buffer.indexOf("\n")
+    while (idx >= 0) {
       const line = this.buffer.slice(0, idx).trim()
       this.buffer = this.buffer.slice(idx + 1)
-      if (!line || !line.startsWith("{")) continue
-      try {
-        this.messageHandler?.(JSON.parse(line) as JsonRpcMessage)
-      } catch {
-        // abaikan baris yang bukan JSON
+      if (line?.startsWith("{")) {
+        try {
+          this.messageHandler?.(JSON.parse(line) as JsonRpcMessage)
+        } catch {
+          // abaikan baris yang bukan JSON
+        }
       }
+      idx = this.buffer.indexOf("\n")
     }
   }
 
   send(message: JsonRpcMessage): void {
-    this.child?.stdin.write(JSON.stringify(message) + "\n")
+    this.child?.stdin.write(`${JSON.stringify(message)}\n`)
   }
 
   async close(): Promise<void> {

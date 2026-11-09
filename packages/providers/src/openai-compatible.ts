@@ -77,11 +77,12 @@ async function* iterateSSE(body: ReadableStream<Uint8Array>, signal?: AbortSigna
       const { done, value } = await reader.read()
       if (done) break
       buffer += decoder.decode(value, { stream: true })
-      let idx: number
-      while ((idx = buffer.indexOf("\n")) >= 0) {
+      let idx = buffer.indexOf("\n")
+      while (idx >= 0) {
         const line = buffer.slice(0, idx)
         buffer = buffer.slice(idx + 1)
         yield line
+        idx = buffer.indexOf("\n")
       }
     }
     if (buffer.length) yield buffer

@@ -1,4 +1,12 @@
-import { FINISH_TOOL_NAME, type ChatMessage, type Logger, type Provider, type ToolSchema, type Usage } from "@ibrax/sdk"
+import {
+  FINISH_TOOL_NAME,
+  type ChatMessage,
+  type CompletionResult,
+  type Logger,
+  type Provider,
+  type ToolSchema,
+  type Usage,
+} from "@ibrax/sdk"
 import { finishTool } from "./builtin.ts"
 import type { IbraConfig } from "./config.ts"
 import type { EventBus } from "./events.ts"
@@ -9,16 +17,14 @@ import type { ToolContext } from "@ibrax/sdk"
 
 const MAX_TOOL_RESULT_CHARS = 4000
 
-export interface ToolContextFactory {
-  (info: {
+export type ToolContextFactory = (info: {
     sessionId: string
     accountId: string
     chatId?: string
     senderId?: string
     skillId: string
     signal?: AbortSignal
-  }): ToolContext
-}
+  }) => ToolContext
 
 export interface AgentDeps {
   config: IbraConfig
@@ -87,7 +93,7 @@ export class Agent {
     for (let step = 1; step <= config.maxSteps; step++) {
       bus.emit("agent.step", { sessionId: input.sessionId, step, kind: "llm", detail: model })
 
-      let res
+      let res: CompletionResult
       try {
         res = await provider.complete({
           model,
@@ -185,6 +191,6 @@ function pushToolResult(messages: ChatMessage[], toolCallId: string, name: strin
   } catch {
     content = String(result)
   }
-  if (content.length > MAX_TOOL_RESULT_CHARS) content = content.slice(0, MAX_TOOL_RESULT_CHARS) + "…(terpotong)"
+  if (content.length > MAX_TOOL_RESULT_CHARS) content = `${content.slice(0, MAX_TOOL_RESULT_CHARS)}…(terpotong)`
   messages.push({ role: "tool", toolCallId, name, content })
 }

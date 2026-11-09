@@ -172,7 +172,7 @@ export function loadConfig(opts: LoadConfigOptions = {}): { config: IbraConfig; 
 export function saveConfig(config: IbraConfig, path: string): void {
   const dir = resolve(path, "..")
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-  writeFileSync(path, JSON.stringify(config, null, 2) + "\n", "utf8")
+  writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`, "utf8")
 }
 
 export function ensureDataDir(config: IbraConfig, cwd = process.cwd()): string {
