@@ -111,6 +111,18 @@ Skill bawaan `whatsapp` mengekspos operasi ini sebagai tool (semuanya tunduk pad
 | `wa_set_presence` | low | Indikator menulis/tersedia |
 | `wa_list_chats` | low | Daftar chat |
 | `wa_group_info` | low | Info grup & peserta |
+| `wa_check_number` | low | Cek nomor terdaftar WhatsApp |
+| `wa_group_create` | medium | Buat grup baru |
+| `wa_group_add` | medium | Tambah peserta grup |
+| `wa_group_remove` | **high** | Keluarkan peserta (butuh persetujuan) |
+| `wa_group_promote` | medium | Jadikan admin |
+| `wa_group_demote` | **high** | Cabut admin (butuh persetujuan) |
+| `wa_group_invite` | low | Kode undangan grup |
+| `wa_group_setting` | medium | Pengaturan grup (announcement/locked) |
+| `wa_send_location` | medium | Kirim lokasi |
+| `wa_send_poll` | medium | Kirim poll |
+| `wa_profile_picture` | low | URL foto profil |
+| `wa_block` | **high** | Blokir/buka blokir (butuh persetujuan) |
 
 Media masuk diunduh otomatis ke `<dataDir>/media/`. Agen dapat **memahami media**:
 - `IBRA_TRANSCRIBE=true` — transkripsikan pesan suara otomatis;

@@ -288,6 +288,88 @@ export class AccountRuntime {
     }
   }
 
+  async onWhatsApp(numbers: string[]): Promise<Array<{ jid: string; exists: boolean }>> {
+    if (!this.sock) return []
+    const res = (await this.sock.onWhatsApp(...numbers)) ?? []
+    return res.map((r: { jid: string; exists?: boolean }) => ({ jid: r.jid, exists: Boolean(r.exists) }))
+  }
+
+  async groupCreate(subject: string, participants: string[]): Promise<{ id: string }> {
+    if (!this.sock) throw new Error("socket belum siap")
+    const meta = await this.sock.groupCreate(subject, participants)
+    return { id: meta.id }
+  }
+
+  async groupParticipants(
+    chatId: string,
+    action: "add" | "remove" | "promote" | "demote",
+    participants: string[],
+  ): Promise<void> {
+    if (!this.sock) return
+    await this.sock.groupParticipantsUpdate(chatId, participants, action)
+  }
+
+  async groupInviteCode(chatId: string): Promise<string | undefined> {
+    if (!this.sock) return undefined
+    try {
+      return await this.sock.groupInviteCode(chatId)
+    } catch (error) {
+      this.opts.logger.warn({ error, chatId }, "gagal mengambil kode undangan")
+      return undefined
+    }
+  }
+
+  async groupSetting(
+    chatId: string,
+    setting: "announcement" | "not_announcement" | "locked" | "unlocked",
+  ): Promise<void> {
+    if (!this.sock) return
+    await this.sock.groupSettingUpdate(chatId, setting)
+  }
+
+  async sendLocation(
+    chatId: string,
+    location: { latitude: number; longitude: number; name?: string; address?: string },
+  ): Promise<void> {
+    if (!this.sock) return
+    await this.enqueueSend(() =>
+      this.sock!.sendMessage(chatId, {
+        location: {
+          degreesLatitude: location.latitude,
+          degreesLongitude: location.longitude,
+          name: location.name,
+          address: location.address,
+        },
+      }),
+    )
+  }
+
+  async sendPoll(
+    chatId: string,
+    poll: { name: string; options: string[]; selectableCount?: number },
+  ): Promise<void> {
+    if (!this.sock) return
+    await this.enqueueSend(() =>
+      this.sock!.sendMessage(chatId, {
+        poll: { name: poll.name, values: poll.options, selectableCount: poll.selectableCount ?? 1 },
+      }),
+    )
+  }
+
+  async profilePictureUrl(chatId: string): Promise<string | undefined> {
+    if (!this.sock) return undefined
+    try {
+      return await this.sock.profilePictureUrl(chatId, "image")
+    } catch {
+      return undefined
+    }
+  }
+
+  async blockStatus(chatId: string, block: boolean): Promise<void> {
+    if (!this.sock) return
+    await this.sock.updateBlockStatus(chatId, block ? "block" : "unblock")
+  }
+
   stop(): void {
     this.stopped = true
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)

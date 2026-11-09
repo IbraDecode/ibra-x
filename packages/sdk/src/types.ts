@@ -158,6 +158,42 @@ export interface WhatsAppOps {
   listChats(opts?: { accountId?: string }): Promise<Array<{ id: string; kind: string; name?: string }>>
   /** Metadata grup (anggota, nama). */
   getGroupInfo(chatId: string, opts?: { accountId?: string }): Promise<{ id: string; name?: string; participants: string[] } | undefined>
+
+  /** Cek apakah nomor terdaftar di WhatsApp. */
+  onWhatsApp(numbers: string[], opts?: { accountId?: string }): Promise<Array<{ jid: string; exists: boolean }>>
+  /** Buat grup baru. Mengembalikan JID grup. */
+  groupCreate(subject: string, participants: string[], opts?: { accountId?: string }): Promise<{ id: string }>
+  /** Ubah keanggotaan grup. */
+  groupParticipants(
+    chatId: string,
+    action: "add" | "remove" | "promote" | "demote",
+    participants: string[],
+    opts?: { accountId?: string },
+  ): Promise<void>
+  /** Kode undangan grup. */
+  groupInviteCode(chatId: string, opts?: { accountId?: string }): Promise<string | undefined>
+  /** Ubah pengaturan grup (announcement/locked). */
+  groupSetting(
+    chatId: string,
+    setting: "announcement" | "not_announcement" | "locked" | "unlocked",
+    opts?: { accountId?: string },
+  ): Promise<void>
+  /** Kirim lokasi. */
+  sendLocation(
+    chatId: string,
+    location: { latitude: number; longitude: number; name?: string; address?: string },
+    opts?: { accountId?: string },
+  ): Promise<void>
+  /** Kirim poll. */
+  sendPoll(
+    chatId: string,
+    poll: { name: string; options: string[]; selectableCount?: number },
+    opts?: { accountId?: string },
+  ): Promise<void>
+  /** URL foto profil. */
+  profilePictureUrl(chatId: string, opts?: { accountId?: string }): Promise<string | undefined>
+  /** Blokir/buka blokir kontak. */
+  blockStatus(chatId: string, block: boolean, opts?: { accountId?: string }): Promise<void>
 }
 
 /** Delegasi ke sub-agen dengan konteks terisolasi. */

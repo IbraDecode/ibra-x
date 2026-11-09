@@ -114,6 +114,59 @@ export class WhatsAppManager implements Transport {
     return this.runtimes.get(accountId)?.getGroupMetadata(chatId)
   }
 
+  async onWhatsApp(accountId: string, numbers: string[]): Promise<Array<{ jid: string; exists: boolean }>> {
+    return this.runtimes.get(accountId)?.onWhatsApp(numbers) ?? []
+  }
+
+  async groupCreate(accountId: string, subject: string, participants: string[]): Promise<{ id: string }> {
+    return this.require(accountId).groupCreate(subject, participants)
+  }
+
+  async groupParticipants(
+    accountId: string,
+    chatId: string,
+    action: "add" | "remove" | "promote" | "demote",
+    participants: string[],
+  ): Promise<void> {
+    await this.require(accountId).groupParticipants(chatId, action, participants)
+  }
+
+  async groupInviteCode(accountId: string, chatId: string): Promise<string | undefined> {
+    return this.runtimes.get(accountId)?.groupInviteCode(chatId)
+  }
+
+  async groupSetting(
+    accountId: string,
+    chatId: string,
+    setting: "announcement" | "not_announcement" | "locked" | "unlocked",
+  ): Promise<void> {
+    await this.require(accountId).groupSetting(chatId, setting)
+  }
+
+  async sendLocation(
+    accountId: string,
+    chatId: string,
+    location: { latitude: number; longitude: number; name?: string; address?: string },
+  ): Promise<void> {
+    await this.require(accountId).sendLocation(chatId, location)
+  }
+
+  async sendPoll(
+    accountId: string,
+    chatId: string,
+    poll: { name: string; options: string[]; selectableCount?: number },
+  ): Promise<void> {
+    await this.require(accountId).sendPoll(chatId, poll)
+  }
+
+  async profilePictureUrl(accountId: string, chatId: string): Promise<string | undefined> {
+    return this.runtimes.get(accountId)?.profilePictureUrl(chatId)
+  }
+
+  async blockStatus(accountId: string, chatId: string, block: boolean): Promise<void> {
+    await this.require(accountId).blockStatus(chatId, block)
+  }
+
   private require(accountId: string): AccountRuntime {
     const runtime = this.runtimes.get(accountId)
     if (!runtime) throw new Error(`Akun WhatsApp "${accountId}" tidak aktif`)

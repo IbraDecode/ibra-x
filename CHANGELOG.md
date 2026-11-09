@@ -4,6 +4,14 @@ Semua perubahan penting didokumentasikan di sini. Format mengikuti
 [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan
 [Semantic Versioning](https://semver.org/lang/id/).
 
+## [0.12.0] — 2026-11-09
+
+### Ditambahkan
+- WhatsApp diperluas menjadi **22 tool**: cek nomor, buat grup, kelola anggota (tambah/keluarkan/promosikan/turunkan),
+  kode undangan, pengaturan grup (announcement/locked), kirim lokasi, kirim poll, foto profil, blokir/buka blokir.
+- Aksi ireversibel (`wa_group_remove`, `wa_group_demote`, `wa_block`) selalu butuh persetujuan (risiko `high`).
+- Dokumentasi GitHub Pages (`docs/index.md`, `docs/_config.yml`).
+
 ## [0.11.0] — 2026-11-09
 
 ### Ditambahkan

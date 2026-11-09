@@ -29,6 +29,32 @@ export interface Transport {
     accountId: string,
     chatId: string,
   ): Promise<{ id: string; name?: string; participants: string[] } | undefined>
+  onWhatsApp(accountId: string, numbers: string[]): Promise<Array<{ jid: string; exists: boolean }>>
+  groupCreate(accountId: string, subject: string, participants: string[]): Promise<{ id: string }>
+  groupParticipants(
+    accountId: string,
+    chatId: string,
+    action: "add" | "remove" | "promote" | "demote",
+    participants: string[],
+  ): Promise<void>
+  groupInviteCode(accountId: string, chatId: string): Promise<string | undefined>
+  groupSetting(
+    accountId: string,
+    chatId: string,
+    setting: "announcement" | "not_announcement" | "locked" | "unlocked",
+  ): Promise<void>
+  sendLocation(
+    accountId: string,
+    chatId: string,
+    location: { latitude: number; longitude: number; name?: string; address?: string },
+  ): Promise<void>
+  sendPoll(
+    accountId: string,
+    chatId: string,
+    poll: { name: string; options: string[]; selectableCount?: number },
+  ): Promise<void>
+  profilePictureUrl(accountId: string, chatId: string): Promise<string | undefined>
+  blockStatus(accountId: string, chatId: string, block: boolean): Promise<void>
 }
 
 export interface RuntimeOptions {
@@ -116,6 +142,48 @@ export class Runtime implements RuntimeApi {
     getGroupInfo: async (chatId, opts) => {
       const accountId = opts?.accountId ?? this.currentAccountId
       return this.transport?.getGroupMetadata(accountId, chatId)
+    },
+    onWhatsApp: async (numbers, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      return this.transport?.onWhatsApp(accountId, numbers) ?? []
+    },
+    groupCreate: async (subject, participants, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      if (!this.transport) throw new Error("Transport tidak tersedia")
+      const res = await this.transport.groupCreate(accountId, subject, participants)
+      this.store.audit({ actor: accountId, action: "wa.groupCreate", detail: { subject } })
+      return res
+    },
+    groupParticipants: async (chatId, action, participants, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      await this.transport?.groupParticipants(accountId, chatId, action, participants)
+      this.store.audit({ actor: accountId, action: `wa.group.${action}`, detail: { chatId, participants } })
+    },
+    groupInviteCode: async (chatId, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      return this.transport?.groupInviteCode(accountId, chatId)
+    },
+    groupSetting: async (chatId, setting, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      await this.transport?.groupSetting(accountId, chatId, setting)
+      this.store.audit({ actor: accountId, action: "wa.groupSetting", detail: { chatId, setting } })
+    },
+    sendLocation: async (chatId, location, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      await this.transport?.sendLocation(accountId, chatId, location)
+    },
+    sendPoll: async (chatId, poll, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      await this.transport?.sendPoll(accountId, chatId, poll)
+    },
+    profilePictureUrl: async (chatId, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      return this.transport?.profilePictureUrl(accountId, chatId)
+    },
+    blockStatus: async (chatId, block, opts) => {
+      const accountId = opts?.accountId ?? this.currentAccountId
+      await this.transport?.blockStatus(accountId, chatId, block)
+      this.store.audit({ actor: accountId, action: block ? "wa.block" : "wa.unblock", detail: { chatId } })
     },
   }
 
